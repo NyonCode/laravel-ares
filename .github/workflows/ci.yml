@@ -1,0 +1,87 @@
+name: CI
+
+on:
+    push:
+        branches:
+            - main
+            - master
+    pull_request:
+
+jobs:
+    compatibility:
+        name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+        runs-on: ubuntu-latest
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - php: '8.1'
+                      laravel: '10.x'
+                      testbench: '^8.37'
+                      pest: '^2.36'
+                    - php: '8.2'
+                      laravel: '11.x'
+                      testbench: '^9.17'
+                      pest: '^3.8'
+                    - php: '8.3'
+                      laravel: '12.x'
+                      testbench: '^10.11'
+                      pest: '^4.0'
+                    - php: '8.4'
+                      laravel: '13.x'
+                      testbench: '^11.1'
+                      pest: '^4.0'
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  coverage: none
+                  tools: composer:v2
+
+            - name: Validate composer.json
+              run: composer validate --strict
+
+            - name: Install dependencies for matrix target
+              run: >
+                  composer update
+                  --prefer-dist
+                  --no-interaction
+                  --with-all-dependencies
+                  "illuminate/contracts:${{ matrix.laravel }}"
+                  "illuminate/http:${{ matrix.laravel }}"
+                  "illuminate/support:${{ matrix.laravel }}"
+                  "orchestra/testbench:${{ matrix.testbench }}"
+                  "pestphp/pest:${{ matrix.pest }}"
+
+            - name: Run Pest
+              run: vendor/bin/pest
+
+    quality:
+        name: Quality
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  tools: composer:v2
+
+            - name: Install dependencies
+              run: composer install --prefer-dist --no-interaction
+
+            - name: Run PHPStan
+              run: composer analyse
+
+            - name: Run Pint
+              run: vendor/bin/pint --test
