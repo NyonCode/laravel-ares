@@ -47,6 +47,9 @@ jobs:
             - name: Validate composer.json
               run: composer validate --strict
 
+            - name: Generate baseline lock file
+              run: composer update --no-interaction
+
             - name: Install dependencies for matrix target
               run: >
                   composer update
