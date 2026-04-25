@@ -20,18 +20,22 @@ jobs:
                       laravel: '10.x'
                       testbench: '^8.0'
                       pest: '^2.0'
+                      phpstan: '^1.10'
                     - php: '8.2'
                       laravel: '11.x'
                       testbench: '^9.0'
                       pest: '^3.0'
+                      phpstan: '^2.1'
                     - php: '8.3'
                       laravel: '12.x'
                       testbench: '^10.0'
                       pest: '^4.0'
+                      phpstan: '^2.1'
                     - php: '8.4'
                       laravel: '13.x'
                       testbench: '^11.0'
                       pest: '^4.0'
+                      phpstan: '^2.1'
 
         steps:
             - name: Checkout
@@ -61,6 +65,7 @@ jobs:
                   "illuminate/support:${{ matrix.laravel }}"
                   "orchestra/testbench:${{ matrix.testbench }}"
                   "pestphp/pest:${{ matrix.pest }}"
+                  "phpstan/phpstan:${{ matrix.phpstan }}"
 
             - name: Run Pest
               run: vendor/bin/pest
