@@ -20,7 +20,7 @@ jobs:
                       laravel: '10.x'
                       testbench: '^8.0'
                       pest: '^2.0'
-                      phpstan: '^1.10'
+                      phpstan: '^1.12'
                     - php: '8.2'
                       laravel: '11.x'
                       testbench: '^9.0'
