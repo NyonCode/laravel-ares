@@ -267,6 +267,36 @@ it('recovers from a corrupted cached payload by flushing and refetching it', fun
         ->and(Cache::get('ares:v1:company:27074358'))->toBeArray();
 });
 
+it('recovers from a malformed cached array payload by refetching a fresh response', function () {
+    $requestCount = 0;
+
+    Cache::put('ares:v1:company:27074358', [
+        'ico' => '27074358',
+    ], 3600);
+
+    Http::fake(function () use (&$requestCount) {
+        $requestCount++;
+
+        return Http::response([
+            'ico' => '27074358',
+            'obchodniJmeno' => 'Asseco Central Europe, a.s.',
+            'sidlo' => [
+                'nazevObce' => 'Praha',
+            ],
+        ]);
+    });
+
+    $company = app(AresClientInterface::class)->findCompany('27074358');
+
+    expect($company?->ic)->toBe('27074358')
+        ->and($company?->name)->toBe('Asseco Central Europe, a.s.')
+        ->and($requestCount)->toBe(1)
+        ->and(Cache::get('ares:v1:company:27074358'))->toMatchArray([
+            'ico' => '27074358',
+            'obchodniJmeno' => 'Asseco Central Europe, a.s.',
+        ]);
+});
+
 it('serves raw payload lookups from cache without making an extra request', function () {
     $requestCount = 0;
 
