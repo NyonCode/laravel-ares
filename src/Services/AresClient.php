@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace NyonCode\Ares\Services;
 
 use Illuminate\Contracts\Cache\Repository as Cache;
-use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Http\Client\Factory as Http;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use NyonCode\Ares\Contracts\AresClientInterface;
 use NyonCode\Ares\Data\CompanyData;
 use NyonCode\Ares\Events\CompanyLookupFailed;
@@ -33,9 +33,7 @@ final class AresClient implements AresClientInterface
      * @param  string  $baseUrl  The base URL for the ARES API
      * @param  int  $cacheTtl  The cache time-to-live in seconds
      * @param  LoggerInterface  $logger  The logger instance
-     * @param  Dispatcher  $events  The event dispatcher
      * @param  Cache  $cache  The cache repository
-     * @param  Http  $http  The HTTP client factory
      * @param  float  $httpTimeout  The HTTP request timeout in seconds
      * @param  float  $httpConnectTimeout  The HTTP connection timeout in seconds
      */
@@ -43,9 +41,7 @@ final class AresClient implements AresClientInterface
         private readonly string $baseUrl,
         private readonly int $cacheTtl,
         private readonly LoggerInterface $logger,
-        private readonly Dispatcher $events,
         private readonly Cache $cache,
-        private readonly Http $http,
         private readonly float $httpTimeout = self::DEFAULT_HTTP_TIMEOUT,
         private readonly float $httpConnectTimeout = self::DEFAULT_HTTP_CONNECT_TIMEOUT,
     ) {
@@ -99,7 +95,7 @@ final class AresClient implements AresClientInterface
                 return null;
             }
 
-            $this->events->dispatch(new CompanyLookupSucceeded($company));
+            Event::dispatch(new CompanyLookupSucceeded($company));
 
             return $company;
         }
@@ -271,9 +267,10 @@ final class AresClient implements AresClientInterface
     private function requestPayload(string $normalizedIc): ?array
     {
         try {
-            $response = $this->http
-                ->timeout($this->httpTimeout)
-                ->connectTimeout($this->httpConnectTimeout)
+            $response = Http::withOptions([
+                'timeout' => $this->httpTimeout,
+                'connect_timeout' => $this->httpConnectTimeout,
+            ])
                 ->acceptJson()
                 ->get($this->companyUrl($normalizedIc));
 
@@ -283,7 +280,7 @@ final class AresClient implements AresClientInterface
                     'status' => $response->status(),
                 ]);
 
-                $this->events->dispatch(new CompanyLookupFailed($normalizedIc, $response->status()));
+                Event::dispatch(new CompanyLookupFailed($normalizedIc, $response->status()));
 
                 return null;
             }
@@ -308,6 +305,6 @@ final class AresClient implements AresClientInterface
             'exception' => $exception->getMessage(),
         ]);
 
-        $this->events->dispatch(new CompanyLookupFailed($normalizedIc, 0, $exception));
+        Event::dispatch(new CompanyLookupFailed($normalizedIc, 0, $exception));
     }
 }

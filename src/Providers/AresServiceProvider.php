@@ -6,9 +6,7 @@ namespace NyonCode\Ares\Providers;
 
 use Exception;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
-use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Log\LogManager;
 use NyonCode\Ares\Commands\TestAresCommand;
 use NyonCode\Ares\Contracts\AresClientInterface;
@@ -37,14 +35,12 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
             ])
             ->hasTranslations('resources/lang')
             ->registeredPackage(function ($packager) {
-                $this->app->singleton(AresClientInterface::class, function (Application $app): AresClient {
+                $this->app->bind(AresClientInterface::class, function (Application $app): AresClient {
                     return new AresClient(
                         baseUrl: $this->configString('ares.api_url'),
                         cacheTtl: $this->configInt('ares.cache_ttl'),
                         logger: $app->make(LogManager::class)->channel($this->configString('ares.log_channel')),
-                        events: $app->make(Dispatcher::class),
                         cache: $app->make(CacheFactory::class)->store(),
-                        http: $app->make(Http::class),
                         httpTimeout: $this->configFloat('ares.http_options.timeout'),
                         httpConnectTimeout: $this->configFloat('ares.http_options.connect_timeout'),
                     );
