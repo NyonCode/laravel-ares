@@ -62,8 +62,8 @@ After publishing the configuration file, you can customize the settings in `conf
 
 return [
     'api_url' => env('ARES_API_URL', 'https://ares.gov.cz/ekonomicke-subjekty-v-be/rest'),
-    'cache_ttl' => env('ARES_CACHE_TTL', 3600), // 1 hour
-    'log_channel' => env('ARES_LOG_CHANNEL', 'default'),
+    'cache_ttl' => env('ARES_CACHE_TTL', 86400), // 24 hours
+    'log_channel' => env('ARES_LOG_CHANNEL', 'stack'),
     'http_options' => [
         'timeout' => env('ARES_HTTP_TIMEOUT', 5.0),
         'connect_timeout' => env('ARES_HTTP_CONNECT_TIMEOUT', 3.0),
@@ -78,8 +78,8 @@ Add the following environment variables to your `.env` file:
 ```env
 # ARES Configuration
 ARES_API_URL=https://ares.gov.cz/ekonomicke-subjekty-v-be/rest
-ARES_CACHE_TTL=3600
-ARES_LOG_CHANNEL=default
+ARES_CACHE_TTL=86400
+ARES_LOG_CHANNEL=stack
 ARES_HTTP_TIMEOUT=5.0
 ARES_HTTP_CONNECT_TIMEOUT=3.0
 ```
@@ -150,13 +150,11 @@ php artisan config:clear
 
 #### 4. HTTP Connection Issues
 
-If you're experiencing connection timeouts, adjust the HTTP timeout settings in your configuration:
+If you're experiencing connection timeouts, adjust the HTTP timeout settings in your `.env` file:
 
-```php
-'http_options' => [
-    'timeout' => 10.0, // Increase timeout
-    'connect_timeout' => 5.0,
-],
+```env
+ARES_HTTP_TIMEOUT=10.0
+ARES_HTTP_CONNECT_TIMEOUT=5.0
 ```
 
 ### Debug Mode
