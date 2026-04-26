@@ -8,8 +8,13 @@ use RuntimeException;
 
 final class CompanyNotFoundException extends RuntimeException
 {
+    /**
+     * Create a new exception for a company not found in ARES.
+     *
+     * @param  string  $ic  The identification number of the company that was not found
+     */
     public static function forIc(string $ic): self
     {
-        return new self("Company with ICO [{$ic}] was not found in ARES.");
+        return new self("Company with IC [{$ic}] was not found in ARES.");
     }
 }
