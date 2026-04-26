@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use NyonCode\Ares\Contracts\AresClientInterface;
@@ -245,7 +246,7 @@ it('normalizes ic values for consistent lookups', function () {
 it('recovers from a corrupted cached payload by flushing and refetching it', function () {
     $requestCount = 0;
 
-    cache()->put('ares:v1:company:27074358', 'broken-payload', 3600);
+    Cache::put('ares:v1:company:27074358', 'broken-payload', 3600);
 
     Http::fake(function () use (&$requestCount) {
         $requestCount++;
@@ -263,7 +264,7 @@ it('recovers from a corrupted cached payload by flushing and refetching it', fun
 
     expect($company?->ic)->toBe('27074358')
         ->and($requestCount)->toBe(1)
-        ->and(cache()->get('ares:v1:company:27074358'))->toBeArray();
+        ->and(Cache::get('ares:v1:company:27074358'))->toBeArray();
 });
 
 it('serves raw payload lookups from cache without making an extra request', function () {

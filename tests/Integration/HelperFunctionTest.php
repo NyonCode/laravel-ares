@@ -10,14 +10,15 @@ use NyonCode\Ares\Data\RegistrationStatusData;
 use NyonCode\Ares\Enums\RegistrationSourceState;
 use NyonCode\Ares\Helpers\AresFluentBuilder;
 use NyonCode\Ares\Helpers\AresHelper;
+use NyonCode\Ares\Tests\Fakes\FakeAresClient;
 
 require_once dirname(__DIR__, 2).'/src/helpers.php';
 
 beforeEach(function () {
-    $this->client = new FakeAresClient;
+    $this->fakeAresClient = new FakeAresClient;
     $this->activeCompany = makeCompany();
 
-    app()->instance(AresClientInterface::class, $this->client);
+    app()->instance(AresClientInterface::class, $this->fakeAresClient);
 });
 
 it('returns a fluent builder when ares is called without arguments', function () {
@@ -25,7 +26,7 @@ it('returns a fluent builder when ares is called without arguments', function ()
 });
 
 it('returns the configured client when ares client is requested', function () {
-    expect(ares('client'))->toBe($this->client);
+    expect(ares('client'))->toBe($this->fakeAresClient);
 });
 
 it('dispatches helper methods through the ares helper', function () {
@@ -34,10 +35,10 @@ it('dispatches helper methods through the ares helper', function () {
 });
 
 it('dispatches client methods through the ares helper', function () {
-    $this->client->normalizeMap['123 456 78'] = '12345678';
+    $this->fakeAresClient->normalizeMap['123 456 78'] = '12345678';
 
     expect(ares('normalizeIc', '123 456 78'))->toBe('12345678')
-        ->and($this->client->normalizeCalls)->toBe(['123 456 78']);
+        ->and($this->fakeAresClient->normalizeCalls)->toBe(['123 456 78']);
 });
 
 it('throws for unknown helper methods', function () {
@@ -46,14 +47,14 @@ it('throws for unknown helper methods', function () {
 });
 
 it('proxies direct client calls from the fluent builder', function () {
-    $this->client->companiesByIc['12345678'] = $this->activeCompany;
+    $this->fakeAresClient->companiesByIc['12345678'] = $this->activeCompany;
 
     expect(ares()->findCompany('12345678'))->toBe($this->activeCompany)
-        ->and($this->client->findCalls)->toBe(['12345678']);
+        ->and($this->fakeAresClient->findCalls)->toBe(['12345678']);
 });
 
 it('supports fluent single company lookups', function () {
-    $this->client->companiesByIc['12345678'] = $this->activeCompany;
+    $this->fakeAresClient->companiesByIc['12345678'] = $this->activeCompany;
 
     $companies = ares()
         ->find('12345678')
@@ -62,11 +63,11 @@ it('supports fluent single company lookups', function () {
 
     expect($companies)->toHaveCount(1)
         ->and($companies[0])->toBe($this->activeCompany)
-        ->and($this->client->findCalls)->toBe(['12345678']);
+        ->and($this->fakeAresClient->findCalls)->toBe(['12345678']);
 });
 
 it('supports fluent multi company filtering and formatting', function () {
-    $this->client->companiesByIc = [
+    $this->fakeAresClient->companiesByIc = [
         '12345678' => $this->activeCompany,
         '87654321' => makeCompany(
             ic: '87654321',
@@ -94,11 +95,11 @@ it('supports fluent multi company filtering and formatting', function () {
 
     expect($companies)->toHaveCount(1)
         ->and($companies[0]['Name'])->toBe('Tech Solutions s.r.o.')
-        ->and($this->client->findCalls)->toBe(['12345678', '87654321', '11223344']);
+        ->and($this->fakeAresClient->findCalls)->toBe(['12345678', '87654321', '11223344']);
 });
 
 it('supports fluent stats, key extraction and reset', function () {
-    $this->client->companiesByIc = [
+    $this->fakeAresClient->companiesByIc = [
         '12345678' => $this->activeCompany,
         '87654321' => makeCompany(
             ic: '87654321',
@@ -127,16 +128,16 @@ it('supports fluent stats, key extraction and reset', function () {
 });
 
 it('can forget cached companies through the builder', function () {
-    $this->client->companiesByIc['12345678'] = $this->activeCompany;
+    $this->fakeAresClient->companiesByIc['12345678'] = $this->activeCompany;
 
     ares()->find('12345678')->forget();
 
-    expect($this->client->forgottenIcs)->toBe(['12345678'])
-        ->and($this->client->companiesByIc)->not->toHaveKey('12345678');
+    expect($this->fakeAresClient->forgottenIcs)->toBe(['12345678'])
+        ->and($this->fakeAresClient->companiesByIc)->not->toHaveKey('12345678');
 });
 
 it('exposes helper convenience functions for found companies', function () {
-    $this->client->companiesByIc['12345678'] = $this->activeCompany;
+    $this->fakeAresClient->companiesByIc['12345678'] = $this->activeCompany;
 
     expect(ares_is_company_active('12345678'))->toBeTrue()
         ->and(ares_get_address('12345678'))->toBe('Test Street 123, Test District, 12345 Test City')
@@ -160,7 +161,7 @@ it('exposes helper convenience functions with safe defaults for missing companie
 });
 
 it('aggregates statistics through the global helper', function () {
-    $this->client->companiesByIc = [
+    $this->fakeAresClient->companiesByIc = [
         '12345678' => $this->activeCompany,
         '87654321' => makeCompany(
             ic: '87654321',
@@ -266,75 +267,4 @@ function makeCompany(
         ),
         rawData: [],
     );
-}
-
-final class FakeAresClient implements AresClientInterface
-{
-    /**
-     * @var array<string, CompanyData|null>
-     */
-    public array $companiesByIc = [];
-
-    /**
-     * @var list<string>
-     */
-    public array $findCalls = [];
-
-    /**
-     * @var list<string>
-     */
-    public array $normalizeCalls = [];
-
-    /**
-     * @var array<string, string>
-     */
-    public array $normalizeMap = [];
-
-    /**
-     * @var list<string>
-     */
-    public array $forgottenIcs = [];
-
-    public function findCompany(string $ic): ?CompanyData
-    {
-        $this->findCalls[] = $ic;
-
-        return $this->companiesByIc[$ic] ?? null;
-    }
-
-    public function findCompanyRaw(string $ic): ?array
-    {
-        return null;
-    }
-
-    public function findCompanyOrFail(string $ic): CompanyData
-    {
-        $company = $this->findCompany($ic);
-
-        if ($company === null) {
-            throw new RuntimeException("Company [$ic] not found.");
-        }
-
-        return $company;
-    }
-
-    public function forgetCompany(string $ic): bool
-    {
-        $this->forgottenIcs[] = $ic;
-        unset($this->companiesByIc[$ic]);
-
-        return true;
-    }
-
-    public function isValidIc(string $ic): bool
-    {
-        return $ic !== '';
-    }
-
-    public function normalizeIc(string $ic): string
-    {
-        $this->normalizeCalls[] = $ic;
-
-        return $this->normalizeMap[$ic] ?? preg_replace('/\s+/', '', $ic) ?? $ic;
-    }
 }
