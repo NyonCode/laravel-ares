@@ -15,7 +15,7 @@ final class InvalidApiResponseException extends RuntimeException
      */
     public static function missingRequiredField(string $field): self
     {
-        return new self("ARES response is missing required field: {$field}");
+        return new self("ARES response is missing required field [{$field}].");
     }
 
     /**
