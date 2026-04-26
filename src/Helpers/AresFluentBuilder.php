@@ -12,12 +12,21 @@ final class AresFluentBuilder
 {
     private ?CompanyData $company = null;
 
+    /**
+     * @var list<CompanyData>|null
+     */
     private ?array $companies = null;
 
+    /**
+     * @var array<string, CompanyData|null>|null
+     */
     private ?array $results = null;
 
     public function __construct(private readonly AresClientInterface $client) {}
 
+    /**
+     * @param  list<mixed>  $arguments
+     */
     public function __call(string $method, array $arguments): mixed
     {
         if (method_exists($this->client, $method)) {
@@ -58,10 +67,7 @@ final class AresFluentBuilder
             $this->results[$ic] = $this->client->findCompany($ic);
         }
 
-        $this->companies = array_values(array_filter(
-            $this->results,
-            static fn (?CompanyData $company): bool => $company !== null
-        ));
+        $this->companies = $this->resolvedCompaniesFromResults();
 
         return $this;
     }
@@ -89,7 +95,7 @@ final class AresFluentBuilder
                 $this->company = null;
             }
         } elseif ($this->companies !== null) {
-            $this->companies = AresHelper::filterActiveCompanies($this->companies);
+            $this->companies = array_values(AresHelper::filterActiveCompanies($this->companies));
         }
 
         return $this;
@@ -105,9 +111,10 @@ final class AresFluentBuilder
                 $this->company = null;
             }
         } elseif ($this->companies !== null) {
-            $this->companies = array_values(array_filter($this->companies, function (CompanyData $company) {
-                return ! AresHelper::isCompanyActive($company);
-            }));
+            $this->companies = array_values(array_filter(
+                $this->companies,
+                static fn (CompanyData $company): bool => ! AresHelper::isCompanyActive($company)
+            ));
         }
 
         return $this;
@@ -125,7 +132,7 @@ final class AresFluentBuilder
                 $this->company = null;
             }
         } elseif ($this->companies !== null) {
-            $this->companies = AresHelper::filterByLegalForm($this->companies, $legalForm);
+            $this->companies = array_values(AresHelper::filterByLegalForm($this->companies, $legalForm));
         }
 
         return $this;
@@ -141,9 +148,10 @@ final class AresFluentBuilder
                 $this->company = null;
             }
         } elseif ($this->companies !== null) {
-            $this->companies = array_values(array_filter($this->companies, function (CompanyData $company) {
-                return AresHelper::hasVatNumber($company);
-            }));
+            $this->companies = array_values(array_filter(
+                $this->companies,
+                static fn (CompanyData $company): bool => AresHelper::hasVatNumber($company)
+            ));
         }
 
         return $this;
@@ -159,9 +167,10 @@ final class AresFluentBuilder
                 $this->company = null;
             }
         } elseif ($this->companies !== null) {
-            $this->companies = array_values(array_filter($this->companies, function (CompanyData $company) {
-                return ! AresHelper::hasVatNumber($company);
-            }));
+            $this->companies = array_values(array_filter(
+                $this->companies,
+                static fn (CompanyData $company): bool => ! AresHelper::hasVatNumber($company)
+            ));
         }
 
         return $this;
@@ -176,7 +185,7 @@ final class AresFluentBuilder
     public function search(string $searchTerm, bool $caseSensitive = false): self
     {
         if ($this->companies !== null) {
-            $this->companies = AresHelper::searchByName($this->companies, $searchTerm, $caseSensitive);
+            $this->companies = array_values(AresHelper::searchByName($this->companies, $searchTerm, $caseSensitive));
         }
 
         return $this;
@@ -190,7 +199,7 @@ final class AresFluentBuilder
     public function limit(int $limit): self
     {
         if ($this->companies !== null) {
-            $this->companies = array_slice($this->companies, 0, $limit, true);
+            $this->companies = array_slice($this->companies, 0, $limit);
         }
 
         return $this;
@@ -204,7 +213,7 @@ final class AresFluentBuilder
     public function offset(int $offset): self
     {
         if ($this->companies !== null) {
-            $this->companies = array_slice($this->companies, $offset, null, true);
+            $this->companies = array_slice($this->companies, $offset);
         }
 
         return $this;
@@ -217,7 +226,7 @@ final class AresFluentBuilder
     {
         if ($this->companies !== null) {
             $firstCompany = reset($this->companies);
-            $this->company = $firstCompany ?: null;
+            $this->company = $firstCompany instanceof CompanyData ? $firstCompany : null;
             $this->companies = null;
         }
 
@@ -416,6 +425,26 @@ final class AresFluentBuilder
         $this->results = null;
 
         return $this;
+    }
+
+    /**
+     * @return list<CompanyData>
+     */
+    private function resolvedCompaniesFromResults(): array
+    {
+        if ($this->results === null) {
+            return [];
+        }
+
+        $companies = [];
+
+        foreach ($this->results as $company) {
+            if ($company instanceof CompanyData) {
+                $companies[] = $company;
+            }
+        }
+
+        return $companies;
     }
 
     public function client(): AresClientInterface

@@ -111,7 +111,7 @@ final class AresClient implements AresClientInterface
      * Find a company by its identification number and return raw API data.
      *
      * @param  string  $ic  The company identification number
-     * @return array|null The raw API response data or null if not found
+     * @return array<string, mixed>|null The raw API response data or null if not found
      */
     public function findCompanyRaw(string $ic): ?array
     {
@@ -216,7 +216,7 @@ final class AresClient implements AresClientInterface
 
             if (is_array($payload)) {
                 return [
-                    'payload' => $payload,
+                    'payload' => $this->payloadData($payload),
                     'from_cache' => true,
                 ];
             }
@@ -254,9 +254,15 @@ final class AresClient implements AresClientInterface
             throw InvalidApiResponseException::invalidPayloadType();
         }
 
-        return array_filter($payload, function ($key) {
-            return is_string($key);
-        }, ARRAY_FILTER_USE_KEY);
+        $normalizedPayload = [];
+
+        foreach ($payload as $key => $value) {
+            if (is_string($key)) {
+                $normalizedPayload[$key] = $value;
+            }
+        }
+
+        return $normalizedPayload;
     }
 
     /**

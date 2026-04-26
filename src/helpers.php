@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use NyonCode\Ares\Contracts\AresClientInterface;
+use NyonCode\Ares\Data\CompanyData;
 use NyonCode\Ares\Helpers\AresHelper;
 
 if (! function_exists('ares')) {
@@ -42,7 +43,7 @@ if (! function_exists('ares_is_company_active')) {
      */
     function ares_is_company_active(string $ic): bool
     {
-        return ares('isCompanyActiveByIc', $ic);
+        return AresHelper::isCompanyActiveByIc($ic);
     }
 }
 
@@ -55,7 +56,7 @@ if (! function_exists('ares_get_address')) {
      */
     function ares_get_address(string $ic): string
     {
-        return ares('getAddressByIc', $ic);
+        return AresHelper::getAddressByIc($ic);
     }
 }
 
@@ -68,7 +69,7 @@ if (! function_exists('ares_has_vat')) {
      */
     function ares_has_vat(string $ic): bool
     {
-        return ares('hasVatNumberByIc', $ic);
+        return AresHelper::hasVatNumberByIc($ic);
     }
 }
 
@@ -81,7 +82,7 @@ if (! function_exists('ares_get_legal_form')) {
      */
     function ares_get_legal_form(string $ic): string
     {
-        return ares('getLegalFormByIc', $ic);
+        return AresHelper::getLegalFormByIc($ic);
     }
 }
 
@@ -95,7 +96,7 @@ if (! function_exists('ares_get_establishment_date')) {
      */
     function ares_get_establishment_date(string $ic, string $format = 'Y-m-d'): string
     {
-        return ares('getEstablishmentDateByIc', $ic, $format);
+        return AresHelper::getEstablishmentDateByIc($ic, $format);
     }
 }
 
@@ -108,7 +109,7 @@ if (! function_exists('ares_format_company')) {
      */
     function ares_format_company(string $ic): array
     {
-        return ares('formatCompanyByIc', $ic);
+        return AresHelper::formatCompanyByIc($ic);
     }
 }
 
@@ -121,10 +122,13 @@ if (! function_exists('ares_get_company_statistics')) {
      */
     function ares_get_company_statistics(array $ics): array
     {
-        $results = ares('validateMultipleIcs', $ics);
-        $companies = array_values(array_filter($results));
+        $results = AresHelper::validateMultipleIcs($ics);
+        $companies = array_values(array_filter(
+            $results,
+            static fn (mixed $company): bool => $company instanceof CompanyData
+        ));
 
-        return ares('getCompanyStatistics', $companies);
+        return AresHelper::getCompanyStatistics($companies);
     }
 }
 
@@ -137,7 +141,7 @@ if (! function_exists('ares_validate_ic')) {
      */
     function ares_validate_ic(string $ic): bool
     {
-        return ares('validateIcFormat', $ic);
+        return AresHelper::validateIcFormat($ic);
     }
 }
 
@@ -150,6 +154,6 @@ if (! function_exists('ares_normalize_ic')) {
      */
     function ares_normalize_ic(string $ic): string
     {
-        return ares('normalizeIcFormat', $ic);
+        return AresHelper::normalizeIcFormat($ic);
     }
 }
