@@ -17,8 +17,8 @@ This creates `config/ares.php` with the following structure:
 
 return [
     'api_url' => env('ARES_API_URL', 'https://ares.gov.cz/ekonomicke-subjekty-v-be/rest'),
-    'cache_ttl' => env('ARES_CACHE_TTL', 3600),
-    'log_channel' => env('ARES_LOG_CHANNEL', 'default'),
+    'cache_ttl' => env('ARES_CACHE_TTL', 86400),
+    'log_channel' => env('ARES_LOG_CHANNEL', 'stack'),
     'http_options' => [
         'timeout' => env('ARES_HTTP_TIMEOUT', 5.0),
         'connect_timeout' => env('ARES_HTTP_CONNECT_TIMEOUT', 3.0),
@@ -57,7 +57,7 @@ ARES_API_URL=https://ares.gov.cz/ekonomicke-subjekty-v-be/rest
 Cache time-to-live in seconds for ARES API responses.
 
 **Type:** `int`  
-**Default:** `3600` (1 hour)  
+**Default:** `86400` (24 hours)  
 **Environment Variable:** `ARES_CACHE_TTL`
 
 #### Recommended Values
@@ -85,7 +85,7 @@ ARES_CACHE_TTL=0
 
 ```php
 // config/ares.php
-'cache_ttl' => 3600, // 1 hour
+'cache_ttl' => 86400, // 24 hours
 ```
 
 ### log_channel
@@ -93,7 +93,7 @@ ARES_CACHE_TTL=0
 The Laravel log channel used for ARES-related logging.
 
 **Type:** `string`  
-**Default:** `default`  
+**Default:** `stack`  
 **Environment Variable:** `ARES_LOG_CHANNEL`
 
 #### Available Channels
@@ -191,8 +191,8 @@ Add these variables to your `.env` file:
 ```env
 # ARES Configuration
 ARES_API_URL=https://ares.gov.cz/ekonomicke-subjekty-v-be/rest
-ARES_CACHE_TTL=3600
-ARES_LOG_CHANNEL=default
+ARES_CACHE_TTL=86400
+ARES_LOG_CHANNEL=stack
 ARES_HTTP_TIMEOUT=5.0
 ARES_HTTP_CONNECT_TIMEOUT=3.0
 ```
