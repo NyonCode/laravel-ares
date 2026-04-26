@@ -28,7 +28,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'http_options' => [
-        'timeout' => 5.0,
-        'connect_timeout' => 3.0,
+        'timeout' => env('ARES_HTTP_TIMEOUT', 5.0),
+        'connect_timeout' => env('ARES_HTTP_CONNECT_TIMEOUT', 3.0),
     ],
 ];

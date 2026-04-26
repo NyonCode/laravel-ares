@@ -42,6 +42,14 @@ php artisan vendor:publish --tag=laravel-ares::config
 | `http_options.timeout` | `5.0` | Request timeout in seconds |
 | `http_options.connect_timeout` | `3.0` | Connection timeout in seconds |
 
+Environment overrides:
+
+- `ARES_API_URL`
+- `ARES_CACHE_TTL`
+- `ARES_LOG_CHANNEL`
+- `ARES_HTTP_TIMEOUT`
+- `ARES_HTTP_CONNECT_TIMEOUT`
+
 ## Usage
 
 Use dependency injection when you want explicit contracts:

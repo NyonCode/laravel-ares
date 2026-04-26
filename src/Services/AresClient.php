@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace NyonCode\Ares\Services;
 
 use Illuminate\Contracts\Cache\Repository as Cache;
-use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Http\Client\Factory as Http;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use NyonCode\Ares\Contracts\AresClientInterface;
 use NyonCode\Ares\Data\CompanyData;
 use NyonCode\Ares\Events\CompanyLookupFailed;
@@ -19,79 +19,120 @@ use Throwable;
 
 final class AresClient implements AresClientInterface
 {
-    private string $baseUrl;
+    private const CACHE_PREFIX = 'ares:v1:company:';
 
-    private int $cacheTtl;
+    private const DEFAULT_HTTP_TIMEOUT = 5.0;
 
-    private LoggerInterface $logger;
+    private const DEFAULT_HTTP_CONNECT_TIMEOUT = 3.0;
 
-    private Dispatcher $events;
+    private string $processedBaseUrl;
 
-    private Cache $cache;
-
+    /**
+     * Create a new ARES client instance.
+     *
+     * @param  string  $baseUrl  The base URL for the ARES API
+     * @param  int  $cacheTtl  The cache time-to-live in seconds
+     * @param  LoggerInterface  $logger  The logger instance
+     * @param  Cache  $cache  The cache repository
+     * @param  float  $httpTimeout  The HTTP request timeout in seconds
+     * @param  float  $httpConnectTimeout  The HTTP connection timeout in seconds
+     */
     public function __construct(
-        string $baseUrl,
-        int $cacheTtl,
-        LoggerInterface $logger,
-        Dispatcher $events,
-        Cache $cache,
-        private readonly Http $http,
+        private readonly string $baseUrl,
+        private readonly int $cacheTtl,
+        private readonly LoggerInterface $logger,
+        private readonly Cache $cache,
+        private readonly float $httpTimeout = self::DEFAULT_HTTP_TIMEOUT,
+        private readonly float $httpConnectTimeout = self::DEFAULT_HTTP_CONNECT_TIMEOUT,
     ) {
-        $this->baseUrl = rtrim($baseUrl, '/');
-        $this->cacheTtl = $cacheTtl;
-        $this->logger = $logger;
-        $this->events = $events;
-        $this->cache = $cache;
+        $this->processedBaseUrl = rtrim($this->baseUrl, '/');
     }
 
+    /**
+     * Find a company by its identification number.
+     *
+     * @param  string  $ic  The company identification number
+     * @return CompanyData|null The company data or null if not found/invalid
+     */
     public function findCompany(string $ic): ?CompanyData
     {
-        $ic = $this->normalizeIc($ic);
+        $normalizedIc = $this->normalizeIc($ic);
 
-        if (! $this->isValidIc($ic)) {
-            $this->logger->warning('Invalid IC format', ['ic' => $ic]);
+        if (! $this->isValidIc($normalizedIc)) {
+            $this->logger->warning('Invalid IC format', ['ic' => $normalizedIc]);
 
             return null;
         }
 
-        $cacheKey = $this->cacheKey($ic);
+        $forceRefresh = false;
 
-        return $this->cache->remember($cacheKey, $this->cacheTtl, function () use ($ic) {
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $payloadLookup = $this->findPayload($normalizedIc, $forceRefresh);
+
+            if ($payloadLookup === null) {
+                return null;
+            }
+
             try {
-                $response = $this->http
-                    ->timeout($this->httpTimeout())
-                    ->connectTimeout($this->httpConnectTimeout())
-                    ->get("{$this->baseUrl}/ekonomicke-subjekty/{$ic}");
+                $company = CompanyData::fromApiResponse($payloadLookup['payload']);
+            } catch (Throwable $e) {
+                if ($payloadLookup['from_cache']) {
+                    $this->logger->warning('Invalid cached company payload detected, flushing', [
+                        'ic' => $normalizedIc,
+                        'key' => $this->cacheKey($normalizedIc),
+                        'exception' => $e->getMessage(),
+                    ]);
 
-                if ($response->failed()) {
-                    $this->events->dispatch(new CompanyLookupFailed($ic, $response->status()));
+                    $this->cache->forget($this->cacheKey($normalizedIc));
+                    $forceRefresh = true;
 
-                    return null;
+                    continue;
                 }
 
-                $company = CompanyData::fromApiResponse(
-                    $this->payloadData($response->json())
-                );
-                $this->events->dispatch(new CompanyLookupSucceeded($company));
-
-                return $company;
-            } catch (Throwable $e) {
-                $this->logger->error('ARES API error', [
-                    'ic' => $ic,
-                    'exception' => $e->getMessage(),
-                ]);
-                $this->events->dispatch(new CompanyLookupFailed($ic, 0, $e));
+                $this->reportLookupException($normalizedIc, $e);
+                $this->cache->forget($this->cacheKey($normalizedIc));
 
                 return null;
             }
-        });
+
+            Event::dispatch(new CompanyLookupSucceeded($company));
+
+            return $company;
+        }
+
+        return null;
     }
 
+    /**
+     * Find a company by its identification number and return raw API data.
+     *
+     * @param  string  $ic  The company identification number
+     * @return array<string, mixed>|null The raw API response data or null if not found
+     */
     public function findCompanyRaw(string $ic): ?array
     {
-        return $this->findCompany($ic)?->rawData;
+        $normalizedIc = $this->normalizeIc($ic);
+
+        if (! $this->isValidIc($normalizedIc)) {
+            $this->logger->warning('Invalid IC format', ['ic' => $normalizedIc]);
+
+            return null;
+        }
+
+        $payloadLookup = $this->findPayload($normalizedIc);
+
+        return $payloadLookup['payload'] ?? null;
     }
 
+    /**
+     * Find a company by its identification number or throw an exception.
+     *
+     * @param  string  $ic  The company identification number
+     * @return CompanyData The company data
+     *
+     * @throws InvalidIcException When the IC format is invalid
+     * @throws CompanyNotFoundException When the company is not found
+     */
     public function findCompanyOrFail(string $ic): CompanyData
     {
         $normalizedIc = $this->normalizeIc($ic);
@@ -109,6 +150,12 @@ final class AresClient implements AresClientInterface
         return $company;
     }
 
+    /**
+     * Remove a company from the cache.
+     *
+     * @param  string  $ic  The company identification number
+     * @return bool True if the cache entry was removed, false otherwise
+     */
     public function forgetCompany(string $ic): bool
     {
         return $this->cache->forget($this->cacheKey($this->normalizeIc($ic)));
@@ -137,6 +184,12 @@ final class AresClient implements AresClientInterface
         return $checksum === (int) $ic[7];
     }
 
+    /**
+     * Normalize the identification number by removing non-digit characters and padding.
+     *
+     * @param  string  $ic  The identification number to normalize
+     * @return string The normalized 8-digit identification number
+     */
     public function normalizeIc(string $ic): string
     {
         return str_pad(preg_replace('/\D/', '', $ic) ?? '', 8, '0', STR_PAD_LEFT);
@@ -144,21 +197,48 @@ final class AresClient implements AresClientInterface
 
     private function cacheKey(string $ic): string
     {
-        return "ares:company:{$ic}";
+        return self::CACHE_PREFIX.$ic;
     }
 
-    private function httpTimeout(): float
+    /**
+     * @return array{payload: array<string, mixed>, from_cache: bool}|null
+     */
+    private function findPayload(string $normalizedIc, bool $forceRefresh = false): ?array
     {
-        $timeout = config('ares.http_options.timeout');
+        $cacheKey = $this->cacheKey($normalizedIc);
 
-        return is_numeric($timeout) ? (float) $timeout : 5.0;
-    }
+        if (! $forceRefresh && $this->cache->has($cacheKey)) {
+            $payload = $this->cache->get($cacheKey);
 
-    private function httpConnectTimeout(): float
-    {
-        $timeout = config('ares.http_options.connect_timeout');
+            if (is_array($payload)) {
+                return [
+                    'payload' => $this->payloadData($payload),
+                    'from_cache' => true,
+                ];
+            }
 
-        return is_numeric($timeout) ? (float) $timeout : 3.0;
+            $this->logger->warning('Invalid cache payload detected, flushing', [
+                'key' => $cacheKey,
+                'type' => gettype($payload),
+            ]);
+
+            $this->cache->forget($cacheKey);
+        }
+
+        $payload = $this->requestPayload($normalizedIc);
+
+        if ($payload === null) {
+            return null;
+        }
+
+        if ($this->cacheTtl > 0) {
+            $this->cache->put($cacheKey, $payload, $this->cacheTtl);
+        }
+
+        return [
+            'payload' => $payload,
+            'from_cache' => false,
+        ];
     }
 
     /**
@@ -170,14 +250,61 @@ final class AresClient implements AresClientInterface
             throw InvalidApiResponseException::invalidPayloadType();
         }
 
-        $normalized = [];
+        $normalizedPayload = [];
 
         foreach ($payload as $key => $value) {
             if (is_string($key)) {
-                $normalized[$key] = $value;
+                $normalizedPayload[$key] = $value;
             }
         }
 
-        return $normalized;
+        return $normalizedPayload;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function requestPayload(string $normalizedIc): ?array
+    {
+        try {
+            $response = Http::withOptions([
+                'timeout' => $this->httpTimeout,
+                'connect_timeout' => $this->httpConnectTimeout,
+            ])
+                ->acceptJson()
+                ->get($this->companyUrl($normalizedIc));
+
+            if ($response->failed()) {
+                $this->logger->warning('ARES lookup failed with HTTP status', [
+                    'ic' => $normalizedIc,
+                    'status' => $response->status(),
+                ]);
+
+                Event::dispatch(new CompanyLookupFailed($normalizedIc, $response->status()));
+
+                return null;
+            }
+
+            return $this->payloadData($response->json());
+        } catch (Throwable $e) {
+            $this->reportLookupException($normalizedIc, $e);
+
+            return null;
+        }
+    }
+
+    private function companyUrl(string $normalizedIc): string
+    {
+        return "{$this->processedBaseUrl}/ekonomicke-subjekty/{$normalizedIc}";
+    }
+
+    private function reportLookupException(string $normalizedIc, Throwable $exception): void
+    {
+        $this->logger->error('ARES API error', [
+            'ic' => $normalizedIc,
+            'exception' => $exception->getMessage(),
+        ]);
+
+        Event::dispatch(new CompanyLookupFailed($normalizedIc, 0, $exception));
     }
 }

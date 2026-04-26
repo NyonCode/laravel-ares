@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use NyonCode\Ares\Contracts\AresClientInterface;
@@ -169,7 +170,7 @@ it('can forget a cached company lookup across normalized ic values', function ()
 
 it('throws a domain exception for invalid ic in the fail-fast method', function () {
     expect(fn () => app(AresClientInterface::class)->findCompanyOrFail('123'))
-        ->toThrow(InvalidIcException::class, 'Invalid ICO [00000123].');
+        ->toThrow(InvalidIcException::class, 'Invalid IC format: 00000123');
 });
 
 it('throws a domain exception when a company is not found in the fail-fast method', function () {
@@ -178,7 +179,7 @@ it('throws a domain exception when a company is not found in the fail-fast metho
     ]);
 
     expect(fn () => app(AresClientInterface::class)->findCompanyOrFail('27074358'))
-        ->toThrow(CompanyNotFoundException::class, 'Company with ICO [27074358] was not found in ARES.');
+        ->toThrow(CompanyNotFoundException::class, 'Company with IC [27074358] was not found in ARES.');
 });
 
 it('handles transport exceptions and dispatches a failed event', function () {
@@ -240,4 +241,83 @@ it('normalizes ic values for consistent lookups', function () {
 
     expect($client->normalizeIc('27 074 358'))->toBe('27074358')
         ->and($client->normalizeIc('123'))->toBe('00000123');
+});
+
+it('recovers from a corrupted cached payload by flushing and refetching it', function () {
+    $requestCount = 0;
+
+    Cache::put('ares:v1:company:27074358', 'broken-payload', 3600);
+
+    Http::fake(function () use (&$requestCount) {
+        $requestCount++;
+
+        return Http::response([
+            'ico' => '27074358',
+            'obchodniJmeno' => 'Asseco Central Europe, a.s.',
+            'sidlo' => [
+                'nazevObce' => 'Praha',
+            ],
+        ]);
+    });
+
+    $company = app(AresClientInterface::class)->findCompany('27074358');
+
+    expect($company?->ic)->toBe('27074358')
+        ->and($requestCount)->toBe(1)
+        ->and(Cache::get('ares:v1:company:27074358'))->toBeArray();
+});
+
+it('recovers from a malformed cached array payload by refetching a fresh response', function () {
+    $requestCount = 0;
+
+    Cache::put('ares:v1:company:27074358', [
+        'ico' => '27074358',
+    ], 3600);
+
+    Http::fake(function () use (&$requestCount) {
+        $requestCount++;
+
+        return Http::response([
+            'ico' => '27074358',
+            'obchodniJmeno' => 'Asseco Central Europe, a.s.',
+            'sidlo' => [
+                'nazevObce' => 'Praha',
+            ],
+        ]);
+    });
+
+    $company = app(AresClientInterface::class)->findCompany('27074358');
+
+    expect($company?->ic)->toBe('27074358')
+        ->and($company?->name)->toBe('Asseco Central Europe, a.s.')
+        ->and($requestCount)->toBe(1)
+        ->and(Cache::get('ares:v1:company:27074358'))->toMatchArray([
+            'ico' => '27074358',
+            'obchodniJmeno' => 'Asseco Central Europe, a.s.',
+        ]);
+});
+
+it('serves raw payload lookups from cache without making an extra request', function () {
+    $requestCount = 0;
+
+    Http::fake(function () use (&$requestCount) {
+        $requestCount++;
+
+        return Http::response([
+            'ico' => '27074358',
+            'obchodniJmeno' => 'Asseco Central Europe, a.s.',
+            'dic' => 'CZ27074358',
+        ]);
+    });
+
+    $client = app(AresClientInterface::class);
+
+    $client->findCompany('27074358');
+    $raw = $client->findCompanyRaw('27074358');
+
+    expect($raw)->toMatchArray([
+        'ico' => '27074358',
+        'obchodniJmeno' => 'Asseco Central Europe, a.s.',
+        'dic' => 'CZ27074358',
+    ])->and($requestCount)->toBe(1);
 });

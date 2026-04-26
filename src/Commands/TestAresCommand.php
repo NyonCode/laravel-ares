@@ -13,6 +13,11 @@ final class TestAresCommand extends Command
 
     protected $description = 'Test ARES API communication for the given IC';
 
+    /**
+     * Execute the console command.
+     *
+     * @return int Command exit code
+     */
     public function handle(): int
     {
         $ic = $this->icArgument();
@@ -44,6 +49,11 @@ final class TestAresCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * Get the IC argument from the command.
+     *
+     * @return string The IC identification number
+     */
     private function icArgument(): string
     {
         $value = $this->argument('ic');
