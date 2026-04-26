@@ -34,39 +34,44 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
             ->hasCommands([
                 TestAresCommand::class,
             ])
-            ->hasTranslations('resources/lang');
-    }
+            ->hasTranslations('resources/lang')
+            ->registeredPackage(function ($packager) {
+                $this->app->singleton(AresClientInterface::class, function (Application $app): AresClient {
+                    return new AresClient(
+                        baseUrl: $this->configString('ares.api_url'),
+                        cacheTtl: $this->configInt('ares.cache_ttl'),
+                        logger: $app->make(LogManager::class)->channel($this->configString('ares.log_channel')),
+                        events: $app->make(Dispatcher::class),
+                        cache: $app->make(CacheFactory::class)->store(),
+                        http: $app->make(Http::class),
+                    );
+                });
 
-    public function register(): void
-    {
-        parent::register();
-
-        $this->app->singleton(AresClientInterface::class, function (Application $app): AresClient {
-            return new AresClient(
-                baseUrl: $this->configString('ares.api_url'),
-                cacheTtl: $this->configInt('ares.cache_ttl'),
-                logger: $app->make(LogManager::class)->channel($this->configString('ares.log_channel')),
-                events: $app->make(Dispatcher::class),
-                cache: $app->make(CacheFactory::class)->store(),
-                http: $app->make(Http::class),
-            );
-        });
-
-        $this->app->bind('ares', fn (Application $app) => $app->make(AresClientInterface::class));
+                $this->app->bind('ares', fn (Application $app) => $app->make(AresClientInterface::class));
+            });
     }
 
     /**
+     * Get package information for the about command.
+     *
      * @return array<string, string>
      */
     public function aboutData(): array
     {
         return [
+            'Author' => 'Ondřej Nyklíček',
             'Client contract' => AresClientInterface::class,
             'Facade alias' => 'Ares',
             'Cache support' => 'enabled',
         ];
     }
 
+    /**
+     * Get a string value from configuration.
+     *
+     * @param  string  $key  The configuration key
+     * @return string The configuration value or empty string if not found
+     */
     private function configString(string $key): string
     {
         $value = config($key);
@@ -74,6 +79,12 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
         return is_string($value) ? $value : '';
     }
 
+    /**
+     * Get an integer value from configuration.
+     *
+     * @param  string  $key  The configuration key
+     * @return int The configuration value or 0 if not found/invalid
+     */
     private function configInt(string $key): int
     {
         $value = config($key);
