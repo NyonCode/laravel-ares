@@ -45,6 +45,8 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
                         events: $app->make(Dispatcher::class),
                         cache: $app->make(CacheFactory::class)->store(),
                         http: $app->make(Http::class),
+                        httpTimeout: $this->configFloat('ares.http_options.timeout'),
+                        httpConnectTimeout: $this->configFloat('ares.http_options.connect_timeout'),
                     );
                 });
 
@@ -93,5 +95,18 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
         $value = config($key);
 
         return is_int($value) ? $value : (is_numeric($value) ? (int) $value : 0);
+    }
+
+    /**
+     * Get a float value from configuration.
+     *
+     * @param  string  $key  The configuration key
+     * @return float The configuration value or 0.0 if not found/invalid
+     */
+    private function configFloat(string $key): float
+    {
+        $value = config($key);
+
+        return is_float($value) || is_int($value) ? (float) $value : (is_numeric($value) ? (float) $value : 0.0);
     }
 }
