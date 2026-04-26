@@ -13,8 +13,9 @@ The primary helper function that provides access to all ARES functionality.
 #### Usage
 
 ```php
-// Get the ARES client instance
-$client = ares();
+// Get the fluent builder / client proxy instance
+$ares = ares();
+$company = $ares->findCompany('12345678');
 
 // Call helper methods dynamically
 $result = ares('methodName', ...$args);
@@ -24,6 +25,7 @@ $result = ares('methodName', ...$args);
 
 | Method | Parameters | Returns | Description |
 |--------|------------|---------|-------------|
+| `client` | none | `AresClientInterface` | Get the ARES client instance |
 | `isCompanyActiveByIc` | `string $ic` | `bool` | Check if company is active |
 | `getAddressByIc` | `string $ic` | `string` | Get formatted address |
 | `getLegalFormByIc` | `string $ic` | `string` | Get legal form |
@@ -47,9 +49,8 @@ $result = ares('methodName', ...$args);
 #### Examples
 
 ```php
-// Get client and use it directly
-$client = ares();
-$company = $client->findCompany('12345678');
+// Get the proxy and use client methods directly
+$company = ares()->findCompany('12345678');
 
 // Use dynamic method calls
 $isActive = ares('isCompanyActiveByIc', '12345678');
@@ -95,6 +96,40 @@ Check if company has VAT registration.
 if (ares_has_vat('12345678')) {
     echo "Company has VAT number";
 }
+```
+
+#### ares_get_legal_form(string $ic): string
+
+Get company's legal form.
+
+```php
+$legalForm = ares_get_legal_form('12345678');
+echo $legalForm; // "s.r.o." or "N/A"
+```
+
+#### ares_get_establishment_date(string $ic, string $format = 'Y-m-d'): string
+
+Get company's establishment date.
+
+```php
+$date = ares_get_establishment_date('12345678', 'd.m.Y');
+echo $date; // "01.01.2020" or "N/A"
+```
+
+#### ares_format_company(string $ic): array
+
+Get formatted company data in one call.
+
+```php
+$display = ares_format_company('12345678');
+```
+
+#### ares_get_company_statistics(array $ics): array
+
+Get statistics for multiple companies by IC.
+
+```php
+$stats = ares_get_company_statistics(['12345678', '87654321']);
 ```
 
 #### ares_validate_ic(string $ic): bool
@@ -518,7 +553,7 @@ if (ares()->findMany($ics)->active()->isEmpty()) {
 
 #### Statistics
 ```php
-$stats = ares()->findMany($ics)->get()->stats();
+$stats = ares()->findMany($ics)->stats();
 echo "Active: {$stats['active']} ({$stats['active_percentage']}%)";
 ```
 
@@ -631,7 +666,6 @@ $keyed = ares()
 ```php
 $stats = ares()
     ->findMany($ics)
-    ->get()
     ->stats();
 
 echo "Total: {$stats['total']}, Active: {$stats['active']} ({$stats['active_percentage']}%)";

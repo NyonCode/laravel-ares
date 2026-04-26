@@ -12,6 +12,7 @@ use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Log\LogManager;
 use NyonCode\Ares\Commands\TestAresCommand;
 use NyonCode\Ares\Contracts\AresClientInterface;
+use NyonCode\Ares\Helpers\AresHelper;
 use NyonCode\Ares\Services\AresClient;
 use NyonCode\LaravelPackageToolkit\Contracts\Packable;
 use NyonCode\LaravelPackageToolkit\Exceptions\InvalidLanguageDirectoryException;
@@ -48,6 +49,8 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
                 });
 
                 $this->app->bind('ares', fn (Application $app) => $app->make(AresClientInterface::class));
+                $this->app->singleton(AresHelper::class, fn () => new AresHelper);
+                $this->app->alias(AresHelper::class, 'ares.helper');
             });
     }
 
