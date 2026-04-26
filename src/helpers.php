@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use NyonCode\Ares\Contracts\AresClientInterface;
 use NyonCode\Ares\Data\CompanyData;
 use NyonCode\Ares\Helpers\AresHelper;
 
@@ -30,7 +29,6 @@ if (! function_exists('ares')) {
         }
 
         throw new InvalidArgumentException(sprintf('Method [%s] does not exist on AresHelper.', $method));
-
     }
 }
 
