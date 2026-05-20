@@ -17,7 +17,6 @@ use NyonCode\Ares\Exceptions\CompanyNotFoundException;
 use NyonCode\Ares\Exceptions\InvalidApiResponseException;
 use NyonCode\Ares\Exceptions\InvalidIcException;
 use NyonCode\Ares\Jobs\IndexAresSubject;
-use NyonCode\Ares\Services\SubjectSearchService;
 use Psr\Log\LoggerInterface;
 use Throwable;
 

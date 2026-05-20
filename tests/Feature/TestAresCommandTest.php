@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Collection;
 use NyonCode\Ares\Contracts\AresClientInterface;
 use NyonCode\Ares\Data\AddressData;
 use NyonCode\Ares\Data\CompanyData;
 use NyonCode\Ares\Data\DeliveryAddressData;
 use NyonCode\Ares\Data\RegistrationData;
-use Illuminate\Support\Collection;
 use NyonCode\Ares\Exceptions\CompanyNotFoundException;
 use NyonCode\Ares\Exceptions\InvalidIcException;
 

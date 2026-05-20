@@ -7,7 +7,6 @@ namespace NyonCode\Ares\Tests\Fakes;
 use Illuminate\Support\Collection;
 use NyonCode\Ares\Contracts\AresClientInterface;
 use NyonCode\Ares\Data\CompanyData;
-use NyonCode\Ares\Data\SubjectData;
 use RuntimeException;
 
 final class FakeAresClient implements AresClientInterface

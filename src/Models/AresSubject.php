@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace NyonCode\Ares\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use NyonCode\Ares\Data\SubjectData;
 
 /**
  * @property string $ic
  * @property string $name
  * @property string|null $city
- * @property \Illuminate\Support\Carbon $indexed_at
+ * @property Carbon $indexed_at
  */
 final class AresSubject extends Model
 {
