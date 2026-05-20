@@ -14,6 +14,7 @@ use NyonCode\Ares\Contracts\AresClientInterface;
  * @method static bool forgetCompany(string $ic)
  * @method static bool isValidIc(string $ic)
  * @method static string normalizeIc(string $ic)
+ * @method static \Illuminate\Support\Collection<int, \NyonCode\Ares\Data\SubjectData> search(string $query, int $limit = 10)
  *
  * @see AresClientInterface
  */

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace NyonCode\Ares\Tests\Fakes;
 
+use Illuminate\Support\Collection;
 use NyonCode\Ares\Contracts\AresClientInterface;
 use NyonCode\Ares\Data\CompanyData;
+use NyonCode\Ares\Data\SubjectData;
 use RuntimeException;
 
 final class FakeAresClient implements AresClientInterface
@@ -76,5 +78,10 @@ final class FakeAresClient implements AresClientInterface
         $this->normalizeCalls[] = $ic;
 
         return $this->normalizeMap[$ic] ?? preg_replace('/\s+/', '', $ic) ?? $ic;
+    }
+
+    public function search(string $query, int $limit = 10): Collection
+    {
+        return collect();
     }
 }

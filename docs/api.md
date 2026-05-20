@@ -19,6 +19,7 @@ interface AresClientInterface
     public function forgetCompany(string $ic): bool;
     public function isValidIc(string $ic): bool;
     public function normalizeIc(string $ic): string;
+    public function search(string $query, int $limit = 10): Collection;
 }
 ```
 
@@ -150,7 +151,39 @@ $normalized = $ares->normalizeIc('123 456 78');
 echo $normalized; // '12345678'
 ```
 
+##### search(string $query, int $limit = 10): Collection
+
+Search indexed subjects by name or IC for autocomplete.
+
+**Parameters:**
+- `$query` (string) - Search query (digits search by IC prefix, text searches by name)
+- `$limit` (int) - Maximum number of results (default: 10)
+
+**Returns:**
+- `Collection<int, SubjectData>` - Collection of matching subjects
+
+**Example:**
+```php
+// Search by name
+$results = $ares->search('Asseco');
+
+// Search by IC prefix
+$results = $ares->search('2707', 5);
+```
+
 ## Data Classes
+
+### SubjectData
+
+Lightweight DTO for autocomplete search results.
+
+#### Properties
+
+```php
+public readonly string $ic;
+public readonly string $name;
+public readonly ?string $city;
+```
 
 ### CompanyData
 
@@ -297,7 +330,56 @@ Ares::findCompanyOrFail($ic);
 Ares::forgetCompany($ic);
 Ares::isValidIc($ic);
 Ares::normalizeIc($ic);
+Ares::search($query, $limit);
 ```
+
+## Jobs
+
+### IndexAresSubject
+
+Queued job for indexing a subject into the `ares_subjects` table.
+
+#### Static Factory
+
+```php
+IndexAresSubject::fromCompanyData(CompanyData $company): self
+```
+
+Creates an `IndexAresSubject` job from a `CompanyData` object. Extracts `ic`, `name`, and `city` automatically.
+
+#### Behavior
+
+- Uses `updateOrCreate` to insert or update the subject
+- Sets `indexed_at` to the current timestamp
+- Runs on the default queue (or synchronously with `sync` driver)
+
+## Services
+
+### SubjectSearchService
+
+Service for searching and managing indexed subjects.
+
+#### Methods
+
+##### search(string $query, int $limit = 10): Collection
+
+Search indexed subjects. Digits search by IC prefix, text by name substring.
+
+##### indexSubject(string $ic, string $name, ?string $city): void
+
+Index a single subject directly (without a queued job).
+
+##### subjectCount(): int
+
+Return the total number of indexed subjects.
+
+##### staleCount(int $days): int
+
+Return the number of records older than the given number of days.
+
+##### staleSubjects(int $days, int $limit = 100): Collection
+
+Return stale subject records for re-indexing.
 
 ## Artisan Commands
 
@@ -317,6 +399,36 @@ php artisan ares:test {ic}
 **Example:**
 ```bash
 php artisan ares:test 12345678
+```
+
+### IndexAresCommand
+
+Index ARES subjects for autocomplete search.
+
+#### Usage
+
+```bash
+php artisan ares:index {ics?*} {--refresh-stale} {--stale-days=} {--limit=100}
+```
+
+**Parameters:**
+- `ics` (optional) - One or more IC numbers to index
+
+**Options:**
+- `--refresh-stale` - Re-index stale records
+- `--stale-days=N` - Override configured stale days threshold
+- `--limit=N` - Maximum number of records to refresh (default: 100)
+
+**Examples:**
+```bash
+# Index specific subjects
+php artisan ares:index 27074358 25596641
+
+# Show statistics
+php artisan ares:index
+
+# Refresh stale records
+php artisan ares:index --refresh-stale --stale-days=14 --limit=200
 ```
 
 ## Events

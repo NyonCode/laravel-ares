@@ -21,7 +21,17 @@ Install the package using Composer:
 composer require nyoncode/laravel-ares
 ```
 
-### 2. Publish Configuration (Optional)
+### 2. Run Migrations
+
+The package includes a migration for the subject indexing table. Run it with:
+
+```bash
+php artisan migrate
+```
+
+This creates the `ares_subjects` table used for autocomplete search. If you don't need indexing, you can skip this step and set `ARES_INDEXING_ENABLED=false`.
+
+### 3. Publish Configuration (Optional)
 
 Publish the configuration file to customize the package settings:
 
@@ -31,7 +41,7 @@ php artisan vendor:publish --tag="ares-config"
 
 This will create a `config/ares.php` file in your application.
 
-### 3. Register Service Provider
+### 4. Register Service Provider
 
 The package uses Laravel's package discovery, so the service provider is automatically registered. If you're not using package discovery, add it manually to your `config/app.php`:
 
@@ -42,7 +52,7 @@ The package uses Laravel's package discovery, so the service provider is automat
 ],
 ```
 
-### 4. Register Facade (Optional)
+### 5. Register Facade (Optional)
 
 If you want to use the Ares facade, add it to your `config/app.php` aliases:
 
@@ -62,11 +72,16 @@ After publishing the configuration file, you can customize the settings in `conf
 
 return [
     'api_url' => env('ARES_API_URL', 'https://ares.gov.cz/ekonomicke-subjekty-v-be/rest'),
-    'cache_ttl' => env('ARES_CACHE_TTL', 86400), // 24 hours
+    'cache_ttl' => env('ARES_CACHE_TTL', 86400),
     'log_channel' => env('ARES_LOG_CHANNEL', 'stack'),
     'http_options' => [
         'timeout' => env('ARES_HTTP_TIMEOUT', 5.0),
         'connect_timeout' => env('ARES_HTTP_CONNECT_TIMEOUT', 3.0),
+    ],
+    'indexing' => [
+        'enabled' => env('ARES_INDEXING_ENABLED', true),
+        'auto_index' => env('ARES_AUTO_INDEX', true),
+        'stale_days' => env('ARES_STALE_DAYS', 30),
     ],
 ];
 ```
@@ -82,6 +97,11 @@ ARES_CACHE_TTL=86400
 ARES_LOG_CHANNEL=stack
 ARES_HTTP_TIMEOUT=5.0
 ARES_HTTP_CONNECT_TIMEOUT=3.0
+
+# Indexing
+ARES_INDEXING_ENABLED=true
+ARES_AUTO_INDEX=true
+ARES_STALE_DAYS=30
 ```
 
 ## Verification

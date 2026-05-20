@@ -340,6 +340,50 @@ class CompanyTest extends TestCase
 
 No, use mock data or test IC numbers provided in the documentation. Avoid using real company data in automated tests.
 
+## Subject Indexing
+
+### What is subject indexing?
+
+Subject indexing stores basic company data (IC, name, city) in a local database table for fast autocomplete search. Instead of querying the ARES API for every search keystroke, you search your local index.
+
+### How do I set up indexing?
+
+Run the migration and enable indexing in your config (enabled by default):
+
+```bash
+php artisan migrate
+```
+
+### How does auto-indexing work?
+
+When `indexing.auto_index` is enabled, every successful `findCompany()` call dispatches a queued `IndexAresSubject` job. The index grows organically as your application looks up companies.
+
+### How do I search the index?
+
+```php
+use NyonCode\Ares\Facades\Ares;
+
+$results = Ares::search('Asseco');       // search by name
+$results = Ares::search('2707', 5);     // search by IC prefix
+$results = ares_search('Skoda');         // global helper
+```
+
+### Can I disable indexing?
+
+Yes, set `ARES_INDEXING_ENABLED=false` in your `.env` file. When disabled, `search()` returns an empty collection and no jobs are dispatched.
+
+### How do I keep the index fresh?
+
+Schedule the refresh command in your scheduler:
+
+```php
+$schedule->command('ares:index --refresh-stale')->daily();
+```
+
+### Can I use the search without auto-indexing?
+
+Yes. Set `ARES_AUTO_INDEX=false` and use `php artisan ares:index` to manually index subjects.
+
 ## Security and Privacy
 
 ### Is the data from ARES public?
@@ -377,7 +421,7 @@ The package only accesses public company information. No sensitive personal data
 
 ### What's the roadmap?
 
-- Enhanced filtering and search capabilities
+- Full-text search support for indexed subjects
 - Additional data sources
 - Performance optimizations
 - More helper functions

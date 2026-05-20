@@ -23,6 +23,11 @@ return [
         'timeout' => env('ARES_HTTP_TIMEOUT', 5.0),
         'connect_timeout' => env('ARES_HTTP_CONNECT_TIMEOUT', 3.0),
     ],
+    'indexing' => [
+        'enabled' => env('ARES_INDEXING_ENABLED', true),
+        'auto_index' => env('ARES_AUTO_INDEX', true),
+        'stale_days' => env('ARES_STALE_DAYS', 30),
+    ],
 ];
 ```
 
@@ -131,6 +136,56 @@ ARES_LOG_CHANNEL=stack
 'log_channel' => 'ares',
 ```
 
+### indexing
+
+Configuration for subject indexing and autocomplete search.
+
+#### indexing.enabled
+
+Enable or disable the indexing feature.
+
+**Type:** `bool`
+**Default:** `true`
+**Environment Variable:** `ARES_INDEXING_ENABLED`
+
+When disabled, `search()` returns an empty collection and no `IndexAresSubject` jobs are dispatched.
+
+#### indexing.auto_index
+
+Automatically index subjects on successful `findCompany()` calls.
+
+**Type:** `bool`
+**Default:** `true`
+**Environment Variable:** `ARES_AUTO_INDEX`
+
+When enabled, a queued `IndexAresSubject` job is dispatched after each successful lookup.
+
+#### indexing.stale_days
+
+Number of days before an indexed record is considered stale.
+
+**Type:** `int`
+**Default:** `30`
+**Environment Variable:** `ARES_STALE_DAYS`
+
+Used by `php artisan ares:index --refresh-stale` to determine which records need refreshing.
+
+#### Examples
+
+```env
+# Enable auto-indexing (default)
+ARES_INDEXING_ENABLED=true
+ARES_AUTO_INDEX=true
+ARES_STALE_DAYS=30
+
+# Disable auto-indexing but keep search enabled
+ARES_INDEXING_ENABLED=true
+ARES_AUTO_INDEX=false
+
+# Disable indexing entirely
+ARES_INDEXING_ENABLED=false
+```
+
 ### http_options
 
 HTTP client configuration for API requests.
@@ -195,6 +250,11 @@ ARES_CACHE_TTL=86400
 ARES_LOG_CHANNEL=stack
 ARES_HTTP_TIMEOUT=5.0
 ARES_HTTP_CONNECT_TIMEOUT=3.0
+
+# Indexing
+ARES_INDEXING_ENABLED=true
+ARES_AUTO_INDEX=true
+ARES_STALE_DAYS=30
 ```
 
 ### Environment-Specific Configurations

@@ -7,6 +7,7 @@ use NyonCode\Ares\Data\AddressData;
 use NyonCode\Ares\Data\CompanyData;
 use NyonCode\Ares\Data\DeliveryAddressData;
 use NyonCode\Ares\Data\RegistrationData;
+use Illuminate\Support\Collection;
 use NyonCode\Ares\Exceptions\CompanyNotFoundException;
 use NyonCode\Ares\Exceptions\InvalidIcException;
 
@@ -77,6 +78,11 @@ it('renders company details in the artisan command output', function () {
         {
             return $ic;
         }
+
+        public function search(string $query, int $limit = 10): Collection
+        {
+            return collect();
+        }
     });
 
     $this->artisan('ares:test', ['ic' => '27074358'])
@@ -130,6 +136,11 @@ it('renders a translated error when the company is not found', function () {
         public function normalizeIc(string $ic): string
         {
             return $ic;
+        }
+
+        public function search(string $query, int $limit = 10): Collection
+        {
+            return collect();
         }
     });
 

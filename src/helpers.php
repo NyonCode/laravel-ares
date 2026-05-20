@@ -143,6 +143,20 @@ if (! function_exists('ares_validate_ic')) {
     }
 }
 
+if (! function_exists('ares_search')) {
+    /**
+     * Search indexed ARES subjects for autocomplete.
+     *
+     * @param  string  $query  Search query (name or IC)
+     * @param  int  $limit  Maximum number of results
+     * @return \Illuminate\Support\Collection<int, \NyonCode\Ares\Data\SubjectData>
+     */
+    function ares_search(string $query, int $limit = 10): \Illuminate\Support\Collection
+    {
+        return AresHelper::client()->search($query, $limit);
+    }
+}
+
 if (! function_exists('ares_normalize_ic')) {
     /**
      * Normalize IC format.
