@@ -85,7 +85,7 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
 
     private function registerLivewireComponents(): void
     {
-        if (! class_exists(Livewire::class)) {
+        if (! class_exists(\Livewire\LivewireManager::class) || ! $this->app->bound('livewire')) {
             return;
         }
 

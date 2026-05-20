@@ -317,6 +317,7 @@ final class AresClient implements AresClientInterface
     public function search(string $query, int $limit = 10): Collection
     {
         if ($this->searchService === null) {
+            /** @var Collection<int, SubjectData> */
             return collect();
         }
 

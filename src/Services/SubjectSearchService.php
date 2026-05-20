@@ -22,6 +22,7 @@ final class SubjectSearchService
         $query = trim($query);
 
         if ($query === '') {
+            /** @var Collection<int, SubjectData> */
             return collect();
         }
 

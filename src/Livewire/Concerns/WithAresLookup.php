@@ -10,16 +10,8 @@ use NyonCode\Ares\Contracts\AresClientInterface;
  * Adds ARES company lookup by IC to a Livewire component.
  *
  * Properties: $aresIc, $aresError, $aresCompany
+ * Methods:    lookupAres(), clearAresLookup()
  * Events:     ares-company-loaded, ares-company-cleared
- *
- * Usage in Blade:
- *   <input wire:model.live.debounce.500ms="aresIc" />
- *   <button wire:click="lookupAres">Vyhledat</button>
- *
- *   @if($aresCompany)
- *       {{ $aresCompany['name'] }} - {{ $aresCompany['ic'] }}
- *
- *   @endif
  */
 trait WithAresLookup
 {
