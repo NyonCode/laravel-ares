@@ -142,6 +142,23 @@ if (ares_validate_ic('12345678')) {
 }
 ```
 
+#### ares_search(string $query, int $limit = 10): Collection
+
+Search indexed subjects for autocomplete.
+
+```php
+// Search by name
+$results = ares_search('Asseco');
+
+// Search by IC prefix with limit
+$results = ares_search('2707', 5);
+
+// Each result is a SubjectData(ic, name, city)
+foreach ($results as $subject) {
+    echo "{$subject->name} ({$subject->ic})";
+}
+```
+
 #### ares_normalize_ic(string $ic): string
 
 Normalize IC to 8-digit format.

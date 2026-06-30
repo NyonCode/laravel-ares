@@ -11,6 +11,7 @@
 - Events for successful and failed lookups
 - ICO normalization and checksum validation
 - Explicit exceptions for invalid ICO and missing companies
+- Subject indexing with database-backed autocomplete search
 - Pest test suite, PHPStan configuration, and GitHub Actions CI
 
 ## Requirements
@@ -41,6 +42,9 @@ php artisan vendor:publish --tag=laravel-ares::config
 | `log_channel` | `stack` | Laravel log channel used for client errors |
 | `http_options.timeout` | `5.0` | Request timeout in seconds |
 | `http_options.connect_timeout` | `3.0` | Connection timeout in seconds |
+| `indexing.enabled` | `true` | Enable subject indexing and search |
+| `indexing.auto_index` | `true` | Automatically index subjects on successful lookup |
+| `indexing.stale_days` | `30` | Number of days before a record is considered stale |
 
 Environment overrides:
 
@@ -49,6 +53,9 @@ Environment overrides:
 - `ARES_LOG_CHANNEL`
 - `ARES_HTTP_TIMEOUT`
 - `ARES_HTTP_CONNECT_TIMEOUT`
+- `ARES_INDEXING_ENABLED`
+- `ARES_AUTO_INDEX`
+- `ARES_STALE_DAYS`
 
 ## Usage
 
@@ -91,6 +98,7 @@ Public API:
 - `forgetCompany(string $ic): bool`
 - `isValidIc(string $ic): bool`
 - `normalizeIc(string $ic): string`
+- `search(string $query, int $limit = 10): Collection<SubjectData>`
 
 ## Domain Model
 
@@ -117,6 +125,7 @@ Related DTOs:
 - `RegistrationData` groups legal form, dates, source, file mark, NACE codes, and source statuses
 - `RegistrationStatusData` represents one registry source status
 - `RegistrationSourceState` is a typed enum for known ARES status values
+- `SubjectData` is a lightweight DTO for autocomplete search results (`ic`, `name`, `city`)
 
 `rawData` remains available as an escape hatch for fields the package does not map yet.
 
@@ -136,15 +145,73 @@ The package dispatches:
 - `NyonCode\Ares\Events\CompanyLookupSucceeded`
 - `NyonCode\Ares\Events\CompanyLookupFailed`
 
-## Artisan Command
+## Subject Indexing and Autocomplete
 
-The package includes an artisan helper for manual verification:
+The package can index looked-up subjects into a local database table for fast autocomplete search.
+
+Run the migration after installing:
 
 ```bash
-php artisan ares:test 27074358
+php artisan migrate
 ```
 
-The command renders a compact company summary including DIC, source, dates, registered office, delivery address, and register metadata.
+Search indexed subjects by name or IC:
+
+```php
+// Search by company name
+$results = Ares::search('Asseco');
+
+// Search by IC prefix
+$results = Ares::search('2707', 5);
+
+// Using the global helper
+$results = ares_search('Skoda');
+```
+
+Each result is a `SubjectData` with `ic`, `name`, and `city` properties.
+
+### Auto-indexing
+
+When `indexing.auto_index` is enabled (default), every successful `findCompany()` call dispatches a queued job that indexes the subject automatically. No extra code needed.
+
+### Manual Indexing
+
+```bash
+# Index specific subjects
+php artisan ares:index 27074358 25596641
+
+# Refresh stale records (older than configured stale_days)
+php artisan ares:index --refresh-stale
+
+# Custom stale threshold and limit
+php artisan ares:index --refresh-stale --stale-days=14 --limit=200
+```
+
+Schedule the refresh in your application's scheduler for automatic maintenance:
+
+```php
+$schedule->command('ares:index --refresh-stale')->daily();
+```
+
+## Artisan Commands
+
+The package includes artisan commands for diagnostics and indexing:
+
+```bash
+# Test ARES API connectivity
+php artisan ares:test 27074358
+
+# Index subjects
+php artisan ares:index 27074358
+
+# Show indexing statistics
+php artisan ares:index
+
+# Refresh stale records
+php artisan ares:index --refresh-stale
+```
+
+`ares:test` renders a compact company summary including DIC, source, dates, registered office, delivery address, and register metadata.
 
 ## Quality Gates
 
@@ -174,10 +241,12 @@ The repository includes a GitHub Actions workflow for:
 
 ## Development Notes
 
-- Successful lookups are cached under the `ares:company:{ic}` key format.
+- Successful lookups are cached under the `ares:v1:company:{ic}` key format.
 - Invalid ICO values are rejected before any HTTP request is sent.
 - `forgetCompany()` invalidates cache entries using normalized ICO values.
 - Failed HTTP responses, malformed payloads, and transport exceptions all dispatch `CompanyLookupFailed`.
+- Auto-indexed subjects are stored in the `ares_subjects` table with a minimal footprint (`ic`, `name`, `city`, `indexed_at`).
+- Search uses `LIKE` queries with database indexes for fast prefix/substring matching.
 
 ## License
 

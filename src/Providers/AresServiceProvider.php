@@ -8,10 +8,12 @@ use Exception;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Log\LogManager;
+use NyonCode\Ares\Commands\IndexAresCommand;
 use NyonCode\Ares\Commands\TestAresCommand;
 use NyonCode\Ares\Contracts\AresClientInterface;
 use NyonCode\Ares\Helpers\AresHelper;
 use NyonCode\Ares\Services\AresClient;
+use NyonCode\Ares\Services\SubjectSearchService;
 use NyonCode\LaravelPackageToolkit\Contracts\Packable;
 use NyonCode\LaravelPackageToolkit\Exceptions\InvalidLanguageDirectoryException;
 use NyonCode\LaravelPackageToolkit\Packager;
@@ -30,12 +32,18 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
         $packager
             ->name('laravel-ares')
             ->hasConfig()
+            ->hasMigrations()
             ->hasCommands([
                 TestAresCommand::class,
+                IndexAresCommand::class,
             ])
             ->hasTranslations('resources/lang')
             ->registeredPackage(function ($packager) {
+                $this->app->singleton(SubjectSearchService::class, fn () => new SubjectSearchService);
+
                 $this->app->bind(AresClientInterface::class, function (Application $app): AresClient {
+                    $indexingEnabled = $this->configBool('ares.indexing.enabled');
+
                     return new AresClient(
                         baseUrl: $this->configString('ares.api_url'),
                         cacheTtl: $this->configInt('ares.cache_ttl'),
@@ -43,6 +51,8 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
                         cache: $app->make(CacheFactory::class)->store(),
                         httpTimeout: $this->configFloat('ares.http_options.timeout'),
                         httpConnectTimeout: $this->configFloat('ares.http_options.connect_timeout'),
+                        autoIndex: $indexingEnabled && $this->configBool('ares.indexing.auto_index'),
+                        searchService: $indexingEnabled ? $app->make(SubjectSearchService::class) : null,
                     );
                 });
 
@@ -91,6 +101,19 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
         $value = config($key);
 
         return is_int($value) ? $value : (is_numeric($value) ? (int) $value : 0);
+    }
+
+    /**
+     * Get a boolean value from configuration.
+     *
+     * @param  string  $key  The configuration key
+     * @return bool The configuration value
+     */
+    private function configBool(string $key): bool
+    {
+        $value = config($key);
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

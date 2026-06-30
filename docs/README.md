@@ -7,6 +7,7 @@ A comprehensive Laravel package for interacting with the Czech ARES (Administrat
 - [Installation](installation.md)
 - [Configuration](configuration.md)
 - [Usage Examples](usage.md)
+- [Subject Indexing & Autocomplete](indexing.md)
 - [Helper Functions](helpers.md)
 - [API Reference](api.md)
 - [Events](events.md)
@@ -19,8 +20,9 @@ The Laravel ARES package provides a simple and elegant way to interact with the 
 - **Caching**: Built-in caching support to reduce API calls
 - **Events**: Laravel events for successful and failed lookups
 - **Validation**: IC (identification number) format validation
+- **Subject Indexing**: Database-backed indexing with autocomplete search
 - **Helper Functions**: Global helper functions for common operations
-- **Artisan Commands**: Command-line tools for testing and debugging
+- **Artisan Commands**: Command-line tools for testing, debugging, and indexing
 - **Type Safety**: Full PHP 8.2+ type safety and strict typing
 
 ## Quick Start
@@ -40,6 +42,10 @@ if (ares_is_company_active('12345678')) {
 
 // Using facade
 $company = Ares::findCompanyOrFail('12345678');
+
+// Autocomplete search from indexed subjects
+$results = Ares::search('Asseco');       // search by name
+$results = Ares::search('2707', 5);     // search by IC prefix
 
 // Using fluent API - most elegant way
 $companies = ares()
@@ -76,6 +82,12 @@ $stats = ares()
 - Company statistics
 - Filtering and searching capabilities
 - Formatted display data
+
+### 🔎 Subject Indexing & Autocomplete
+- Database-backed subject index for fast local search
+- Automatic indexing on successful lookups (queued job)
+- Artisan command for manual and scheduled indexing
+- Stale record detection and refresh
 
 ### 🎯 Helper Functions
 - Global helper functions like `ares()`, `ares_is_company_active()`

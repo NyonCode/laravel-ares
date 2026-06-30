@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Collection;
 use NyonCode\Ares\Data\CompanyData;
+use NyonCode\Ares\Data\SubjectData;
 use NyonCode\Ares\Helpers\AresHelper;
 
 if (! function_exists('ares')) {
@@ -140,6 +142,20 @@ if (! function_exists('ares_validate_ic')) {
     function ares_validate_ic(string $ic): bool
     {
         return AresHelper::validateIcFormat($ic);
+    }
+}
+
+if (! function_exists('ares_search')) {
+    /**
+     * Search indexed ARES subjects for autocomplete.
+     *
+     * @param  string  $query  Search query (name or IC)
+     * @param  int  $limit  Maximum number of results
+     * @return Collection<int, SubjectData>
+     */
+    function ares_search(string $query, int $limit = 10): Collection
+    {
+        return AresHelper::client()->search($query, $limit);
     }
 }
 

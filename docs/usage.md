@@ -324,6 +324,44 @@ class CompanyController extends Controller
 }
 ```
 
+## Autocomplete Search
+
+The package indexes subjects into a local database for fast autocomplete search. See the [Subject Indexing & Autocomplete](indexing.md) guide for full details.
+
+### Quick Example
+
+```php
+use NyonCode\Ares\Facades\Ares;
+
+// Search by name
+$results = Ares::search('Asseco');
+
+// Search by IC prefix
+$results = Ares::search('2707', 5);
+
+// Using global helper
+$results = ares_search('Skoda');
+
+// Each result is a SubjectData(ic, name, city)
+foreach ($results as $subject) {
+    echo "{$subject->name} ({$subject->ic}) - {$subject->city}";
+}
+```
+
+### Autocomplete API Endpoint
+
+```php
+use NyonCode\Ares\Facades\Ares;
+
+Route::get('/api/companies/search', function (Request $request): JsonResponse {
+    $request->validate(['q' => 'required|string|min:2']);
+
+    return response()->json(
+        Ares::search($request->string('q'), 10)
+    );
+});
+```
+
 ## Artisan Command Usage
 
 ### Testing ARES Connection
@@ -348,6 +386,22 @@ php artisan ares:test 12345678
 # | Legal Form              | s.r.o.                    |
 # | Business Register File  | N/A                       |
 # +-------------------------+---------------------------+
+```
+
+### Indexing Subjects
+
+```bash
+# Index specific subjects
+php artisan ares:index 27074358 25596641
+
+# Show indexing statistics
+php artisan ares:index
+
+# Refresh stale records
+php artisan ares:index --refresh-stale
+
+# With custom options
+php artisan ares:index --refresh-stale --stale-days=14 --limit=200
 ```
 
 ## Caching

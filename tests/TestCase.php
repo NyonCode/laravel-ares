@@ -25,5 +25,8 @@ abstract class TestCase extends Orchestra
         $app['config']->set('ares.log_channel', 'stack');
         $app['config']->set('ares.http_options.timeout', 5.0);
         $app['config']->set('ares.http_options.connect_timeout', 3.0);
+        $app['config']->set('ares.indexing.enabled', true);
+        $app['config']->set('ares.indexing.auto_index', false);
+        $app['config']->set('ares.indexing.stale_days', 30);
     }
 }

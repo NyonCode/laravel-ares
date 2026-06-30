@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace NyonCode\Ares\Services;
 
 use Illuminate\Contracts\Cache\Repository as Cache;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use NyonCode\Ares\Contracts\AresClientInterface;
 use NyonCode\Ares\Data\CompanyData;
+use NyonCode\Ares\Data\SubjectData;
 use NyonCode\Ares\Events\CompanyLookupFailed;
 use NyonCode\Ares\Events\CompanyLookupSucceeded;
 use NyonCode\Ares\Exceptions\CompanyNotFoundException;
 use NyonCode\Ares\Exceptions\InvalidApiResponseException;
 use NyonCode\Ares\Exceptions\InvalidIcException;
+use NyonCode\Ares\Jobs\IndexAresSubject;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -44,6 +47,8 @@ final class AresClient implements AresClientInterface
         private readonly Cache $cache,
         private readonly float $httpTimeout = self::DEFAULT_HTTP_TIMEOUT,
         private readonly float $httpConnectTimeout = self::DEFAULT_HTTP_CONNECT_TIMEOUT,
+        private readonly bool $autoIndex = false,
+        private readonly ?SubjectSearchService $searchService = null,
     ) {
         $this->processedBaseUrl = rtrim($this->baseUrl, '/');
     }
@@ -96,6 +101,14 @@ final class AresClient implements AresClientInterface
             }
 
             Event::dispatch(new CompanyLookupSucceeded($company));
+
+            if ($this->autoIndex) {
+                IndexAresSubject::dispatch(
+                    ic: $company->ic,
+                    name: $company->name,
+                    city: $company->registeredOffice?->city,
+                );
+            }
 
             return $company;
         }
@@ -296,6 +309,19 @@ final class AresClient implements AresClientInterface
     private function companyUrl(string $normalizedIc): string
     {
         return "{$this->processedBaseUrl}/ekonomicke-subjekty/{$normalizedIc}";
+    }
+
+    /**
+     * @return Collection<int, SubjectData>
+     */
+    public function search(string $query, int $limit = 10): Collection
+    {
+        if ($this->searchService === null) {
+            /** @var Collection<int, SubjectData> */
+            return collect();
+        }
+
+        return $this->searchService->search($query, $limit);
     }
 
     private function reportLookupException(string $normalizedIc, Throwable $exception): void

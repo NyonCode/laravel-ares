@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace NyonCode\Ares\Contracts;
 
+use Illuminate\Support\Collection;
 use NyonCode\Ares\Data\CompanyData;
+use NyonCode\Ares\Data\SubjectData;
 
 interface AresClientInterface
 {
@@ -22,4 +24,11 @@ interface AresClientInterface
     public function isValidIc(string $ic): bool;
 
     public function normalizeIc(string $ic): string;
+
+    /**
+     * Search indexed subjects by name or IC for autocomplete.
+     *
+     * @return Collection<int, SubjectData>
+     */
+    public function search(string $query, int $limit = 10): Collection;
 }
