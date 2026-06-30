@@ -5,24 +5,32 @@ All notable changes to `laravel-ares` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.6]
+## [1.0.0]
 
-### Removed
-- Removed the experimental Livewire search/lookup components (`AresSearch`,
-  `AresLookup`) and the `livewire/livewire` runtime dependency. The package is
-  now a lean API/indexing library; UI can be built on top of `Ares::search()`.
+Initial public release.
 
-### Fixed
-- Subject name search now performs a true substring match (`LIKE '%term%'`) on
-  every database driver. Previously the MySQL branch used an invalid
-  `MATCH … AGAINST('*term*' IN BOOLEAN MODE)` expression whose leading `*` was
-  ignored, silently degrading to prefix matching and diverging from the
-  documented behaviour.
-- Fixed a broken PHPStan configuration (`excludePaths` referenced a removed
-  directory) and applied Pint formatting, restoring a green CI pipeline.
+### Added
+- ARES API client (`findCompany`, `findCompanyOrFail`, `findCompanyRaw`,
+  `forgetCompany`) exposed via the `Ares` facade, the `ares` container binding
+  and the `AresClientInterface` contract.
+- IČO validation with full modulo-11 checksum and normalization
+  (`isValidIc`, `normalizeIc`); invalid values are rejected before any request.
+- Response caching with configurable TTL and self-healing of corrupted cached
+  payloads, plus configurable HTTP timeout / connect-timeout.
+- Immutable, typed data objects: `CompanyData`, `AddressData`,
+  `DeliveryAddressData`, `RegistrationData`, `RegistrationStatusData`,
+  `SubjectData`, and the `RegistrationSourceState` enum.
+- `CompanyLookupSucceeded` and `CompanyLookupFailed` events.
+- Fluent query builder with chainable filters (`active`, `inactive`,
+  `legalForm`, `withVat`, `search`, `limit`, …) and terminals.
+- Global helper functions (`ares()`, `ares_is_company_active()`,
+  `ares_get_address()`, `ares_validate_ic()`, `ares_search()`, …).
+- Subject indexing into the `ares_subjects` table with auto-indexing via a
+  queued, unique `IndexAresSubject` job, stale-record tracking, and local
+  substring/prefix search through `Ares::search()`.
+- Artisan commands `ares:test` and `ares:index`.
+- Czech and English translations, publishable config, and full documentation.
 
-### Changed
-- The `ares_subjects` migration no longer creates an unused MySQL `FULLTEXT`
-  index (it does not accelerate `LIKE` substring queries). PostgreSQL keeps its
-  trigram GIN index; other drivers use a plain index on `name`.
-- Stopped tracking IDE (`.idea/`) and tooling cache directories in git.
+### Compatibility
+- PHP 8.2 – 8.4
+- Laravel 10 / 11 / 12 / 13
