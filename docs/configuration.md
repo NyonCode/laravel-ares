@@ -7,7 +7,7 @@ This guide covers all configuration options available in the Laravel ARES packag
 Publish the configuration file to customize package settings:
 
 ```bash
-php artisan vendor:publish --tag="ares-config"
+php artisan vendor:publish --tag=laravel-ares::config
 ```
 
 This creates `config/ares.php` with the following structure:

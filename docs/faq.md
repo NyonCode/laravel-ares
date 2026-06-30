@@ -33,7 +33,7 @@ composer require nyoncode/laravel-ares
 No, the package works out of the box with sensible defaults. However, you can publish the configuration file to customize settings:
 
 ```bash
-php artisan vendor:publish --tag="ares-config"
+php artisan vendor:publish --tag=laravel-ares::config
 ```
 
 ### The helper functions are not available. What should I do?

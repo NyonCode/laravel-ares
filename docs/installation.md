@@ -36,7 +36,7 @@ This creates the `ares_subjects` table used for autocomplete search. If you don'
 Publish the configuration file to customize the package settings:
 
 ```bash
-php artisan vendor:publish --tag="ares-config"
+php artisan vendor:publish --tag=laravel-ares::config
 ```
 
 This will create a `config/ares.php` file in your application.
@@ -156,7 +156,7 @@ This ensures the helper files are properly autoloaded.
 If you get configuration errors, make sure to publish the config file:
 
 ```bash
-php artisan vendor:publish --tag="ares-config"
+php artisan vendor:publish --tag=laravel-ares::config
 ```
 
 #### 3. Cache Issues
