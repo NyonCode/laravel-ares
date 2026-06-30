@@ -5,6 +5,22 @@ All notable changes to `laravel-ares` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0]
+
+### Added
+- `cache.enabled` config option (`ARES_CACHE_ENABLED`) to disable caching entirely.
+- `cache.store` (`ARES_CACHE_STORE`) to select a specific cache store, and
+  `cache.prefix` (`ARES_CACHE_PREFIX`) to customize cache key prefixes.
+- CI coverage for PHP 8.5.
+
+### Changed
+- **Breaking:** the `cache_ttl` config key moved under a `cache` array as
+  `cache.ttl`. Republish the config or rename the key when upgrading.
+- Configuration is now read through Laravel's built-in typed config accessors.
+
+### Removed
+- **Breaking:** dropped support for Laravel 10; Laravel 11+ is now required.
+
 ## [1.0.0]
 
 Initial public release.

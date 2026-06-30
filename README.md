@@ -17,7 +17,7 @@
 ## Requirements
 
 - PHP 8.2+
-- Laravel 10, 11, 12, or 13
+- Laravel 11, 12, or 13
 
 ## Installation
 
@@ -38,7 +38,10 @@ php artisan vendor:publish --tag=laravel-ares::config
 | Key | Default | Description |
 | --- | --- | --- |
 | `api_url` | `https://ares.gov.cz/ekonomicke-subjekty-v-be/rest` | Base URL for the ARES REST API |
-| `cache_ttl` | `86400` | Cache lifetime for successful lookups in seconds |
+| `cache.enabled` | `true` | Enable response caching; set to `false` to disable caching entirely |
+| `cache.ttl` | `86400` | Cache lifetime for successful lookups in seconds |
+| `cache.store` | `null` | Cache store to use (`null` = default store) |
+| `cache.prefix` | `ares:v1:company:` | Prefix for ARES cache keys |
 | `log_channel` | `stack` | Laravel log channel used for client errors |
 | `http_options.timeout` | `5.0` | Request timeout in seconds |
 | `http_options.connect_timeout` | `3.0` | Connection timeout in seconds |
@@ -49,7 +52,10 @@ php artisan vendor:publish --tag=laravel-ares::config
 Environment overrides:
 
 - `ARES_API_URL`
+- `ARES_CACHE_ENABLED`
 - `ARES_CACHE_TTL`
+- `ARES_CACHE_STORE`
+- `ARES_CACHE_PREFIX`
 - `ARES_LOG_CHANNEL`
 - `ARES_HTTP_TIMEOUT`
 - `ARES_HTTP_CONNECT_TIMEOUT`
