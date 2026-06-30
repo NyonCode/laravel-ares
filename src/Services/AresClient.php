@@ -34,11 +34,12 @@ final class AresClient implements AresClientInterface
      * Create a new ARES client instance.
      *
      * @param  string  $baseUrl  The base URL for the ARES API
-     * @param  int  $cacheTtl  The cache time-to-live in seconds
+     * @param  int  $cacheTtl  The cache time-to-live in seconds; 0 disables caching
      * @param  LoggerInterface  $logger  The logger instance
      * @param  Cache  $cache  The cache repository
      * @param  float  $httpTimeout  The HTTP request timeout in seconds
      * @param  float  $httpConnectTimeout  The HTTP connection timeout in seconds
+     * @param  string  $cachePrefix  The prefix used for cache keys
      */
     public function __construct(
         private readonly string $baseUrl,
@@ -49,6 +50,7 @@ final class AresClient implements AresClientInterface
         private readonly float $httpConnectTimeout = self::DEFAULT_HTTP_CONNECT_TIMEOUT,
         private readonly bool $autoIndex = false,
         private readonly ?SubjectSearchService $searchService = null,
+        private readonly string $cachePrefix = self::CACHE_PREFIX,
     ) {
         $this->processedBaseUrl = rtrim($this->baseUrl, '/');
     }
@@ -210,7 +212,7 @@ final class AresClient implements AresClientInterface
 
     private function cacheKey(string $ic): string
     {
-        return self::CACHE_PREFIX.$ic;
+        return $this->cachePrefix.$ic;
     }
 
     /**

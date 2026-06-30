@@ -21,7 +21,10 @@ abstract class TestCase extends Orchestra
         $app['config']->set('app.fallback_locale', 'en');
         $app['config']->set('cache.default', 'array');
         $app['config']->set('ares.api_url', 'https://ares.gov.cz/ekonomicke-subjekty-v-be/rest');
-        $app['config']->set('ares.cache_ttl', 3600);
+        $app['config']->set('ares.cache.enabled', true);
+        $app['config']->set('ares.cache.ttl', 3600);
+        $app['config']->set('ares.cache.store', null);
+        $app['config']->set('ares.cache.prefix', 'ares:v1:company:');
         $app['config']->set('ares.log_channel', 'stack');
         $app['config']->set('ares.http_options.timeout', 5.0);
         $app['config']->set('ares.http_options.connect_timeout', 3.0);

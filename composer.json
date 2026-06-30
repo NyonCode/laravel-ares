@@ -11,16 +11,16 @@
     ],
     "require": {
         "php": "^8.2",
-        "illuminate/contracts": "^10.0|^11.0|^12.0|^13.0",
-        "illuminate/http": "^10.0|^11.0|^12.0|^13.0",
-        "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/contracts": "^11.0|^12.0|^13.0",
+        "illuminate/http": "^11.0|^12.0|^13.0",
+        "illuminate/support": "^11.0|^12.0|^13.0",
         "guzzlehttp/guzzle": "^7.0",
         "nyoncode/laravel-package-toolkit": "^2.0"
     },
     "require-dev": {
         "larastan/larastan": "^2.9|^3.0",
         "laravel/pint": "^1.13",
-        "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
         "pestphp/pest": "^2.0|^3.0|^4.0",
         "phpstan/phpstan": "^1.12|^2.1"
     },

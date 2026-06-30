@@ -37,22 +37,27 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
                 TestAresCommand::class,
                 IndexAresCommand::class,
             ])
+            ->hasAbout()
             ->hasTranslations('resources/lang')
             ->registeredPackage(function ($packager) {
                 $this->app->singleton(SubjectSearchService::class, fn () => new SubjectSearchService);
 
                 $this->app->bind(AresClientInterface::class, function (Application $app): AresClient {
-                    $indexingEnabled = $this->configBool('ares.indexing.enabled');
+                    $config = $app->make('config');
+                    $indexingEnabled = $config->boolean('ares.indexing.enabled');
+                    $cacheEnabled = $config->boolean('ares.cache.enabled');
+                    $cacheStore = $config->get('ares.cache.store');
 
                     return new AresClient(
-                        baseUrl: $this->configString('ares.api_url'),
-                        cacheTtl: $this->configInt('ares.cache_ttl'),
-                        logger: $app->make(LogManager::class)->channel($this->configString('ares.log_channel')),
-                        cache: $app->make(CacheFactory::class)->store(),
-                        httpTimeout: $this->configFloat('ares.http_options.timeout'),
-                        httpConnectTimeout: $this->configFloat('ares.http_options.connect_timeout'),
-                        autoIndex: $indexingEnabled && $this->configBool('ares.indexing.auto_index'),
+                        baseUrl: $config->string('ares.api_url'),
+                        cacheTtl: $cacheEnabled ? $config->integer('ares.cache.ttl') : 0,
+                        logger: $app->make(LogManager::class)->channel($config->string('ares.log_channel')),
+                        cache: $app->make(CacheFactory::class)->store(is_string($cacheStore) && $cacheStore !== '' ? $cacheStore : null),
+                        httpTimeout: $config->float('ares.http_options.timeout'),
+                        httpConnectTimeout: $config->float('ares.http_options.connect_timeout'),
+                        autoIndex: $indexingEnabled && $config->boolean('ares.indexing.auto_index'),
                         searchService: $indexingEnabled ? $app->make(SubjectSearchService::class) : null,
+                        cachePrefix: $config->string('ares.cache.prefix'),
                     );
                 });
 
@@ -73,59 +78,7 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
             'Author' => 'Ondřej Nyklíček',
             'Client contract' => AresClientInterface::class,
             'Facade alias' => 'Ares',
-            'Cache support' => 'enabled',
+            'Cache support' => $this->app->make('config')->boolean('ares.cache.enabled') ? 'enabled' : 'disabled',
         ];
-    }
-
-    /**
-     * Get a string value from configuration.
-     *
-     * @param  string  $key  The configuration key
-     * @return string The configuration value or empty string if not found
-     */
-    private function configString(string $key): string
-    {
-        $value = config($key);
-
-        return is_string($value) ? $value : '';
-    }
-
-    /**
-     * Get an integer value from configuration.
-     *
-     * @param  string  $key  The configuration key
-     * @return int The configuration value or 0 if not found/invalid
-     */
-    private function configInt(string $key): int
-    {
-        $value = config($key);
-
-        return is_int($value) ? $value : (is_numeric($value) ? (int) $value : 0);
-    }
-
-    /**
-     * Get a boolean value from configuration.
-     *
-     * @param  string  $key  The configuration key
-     * @return bool The configuration value
-     */
-    private function configBool(string $key): bool
-    {
-        $value = config($key);
-
-        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
-    }
-
-    /**
-     * Get a float value from configuration.
-     *
-     * @param  string  $key  The configuration key
-     * @return float The configuration value or 0.0 if not found/invalid
-     */
-    private function configFloat(string $key): float
-    {
-        $value = config($key);
-
-        return is_float($value) || is_int($value) ? (float) $value : (is_numeric($value) ? (float) $value : 0.0);
     }
 }
