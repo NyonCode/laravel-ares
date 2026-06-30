@@ -6,7 +6,6 @@ namespace NyonCode\Ares\Services;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Schema;
 use NyonCode\Ares\Data\SubjectData;
 use NyonCode\Ares\Models\AresSubject;
 
@@ -66,18 +65,6 @@ final class SubjectSearchService
      */
     private function applyNameSearch(Builder $builder, string $query): void
     {
-        $driver = Schema::getConnection()->getDriverName();
-
-        if (in_array($driver, ['mysql', 'mariadb'])) {
-            $term = str_replace(['+', '-', '*', '~', '<', '>', '(', ')', '"'], '', $query);
-
-            $builder
-                ->whereRaw('MATCH (name) AGAINST (? IN BOOLEAN MODE)', ['*'.$term.'*'])
-                ->orderByRaw('MATCH (name) AGAINST (? IN BOOLEAN MODE) DESC', ['*'.$term.'*']);
-
-            return;
-        }
-
         $escaped = self::escapeLike($query);
 
         $builder

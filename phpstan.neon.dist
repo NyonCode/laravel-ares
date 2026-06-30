@@ -4,8 +4,6 @@ includes:
 parameters:
     paths:
         - src
-    excludePaths:
-        - src/Livewire
     level: max
     tmpDir: .phpstan
     treatPhpDocTypesAsCertain: true

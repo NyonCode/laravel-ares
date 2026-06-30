@@ -8,13 +8,10 @@ use Exception;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Log\LogManager;
-use Livewire\Livewire;
 use NyonCode\Ares\Commands\IndexAresCommand;
 use NyonCode\Ares\Commands\TestAresCommand;
 use NyonCode\Ares\Contracts\AresClientInterface;
 use NyonCode\Ares\Helpers\AresHelper;
-use NyonCode\Ares\Livewire\AresLookup;
-use NyonCode\Ares\Livewire\AresSearch;
 use NyonCode\Ares\Services\AresClient;
 use NyonCode\Ares\Services\SubjectSearchService;
 use NyonCode\LaravelPackageToolkit\Contracts\Packable;
@@ -40,7 +37,6 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
                 TestAresCommand::class,
                 IndexAresCommand::class,
             ])
-            ->hasViews()
             ->hasTranslations('resources/lang')
             ->registeredPackage(function ($packager) {
                 $this->app->singleton(SubjectSearchService::class, fn () => new SubjectSearchService);
@@ -63,8 +59,6 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
                 $this->app->bind('ares', fn (Application $app) => $app->make(AresClientInterface::class));
                 $this->app->singleton(AresHelper::class, fn () => new AresHelper);
                 $this->app->alias(AresHelper::class, 'ares.helper');
-
-                $this->registerLivewireComponents();
             });
     }
 
@@ -81,16 +75,6 @@ final class AresServiceProvider extends PackageServiceProvider implements Packab
             'Facade alias' => 'Ares',
             'Cache support' => 'enabled',
         ];
-    }
-
-    private function registerLivewireComponents(): void
-    {
-        if (! class_exists(\Livewire\LivewireManager::class) || ! $this->app->bound('livewire')) {
-            return;
-        }
-
-        Livewire::component('ares-search', AresSearch::class);
-        Livewire::component('ares-lookup', AresLookup::class);
     }
 
     /**

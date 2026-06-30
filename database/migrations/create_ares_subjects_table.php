@@ -17,13 +17,10 @@ return new class extends Migration
             $table->timestamp('indexed_at')->useCurrent();
         });
 
-        $driver = Schema::getConnection()->getDriverName();
-
-        if (in_array($driver, ['mysql', 'mariadb'])) {
-            Schema::getConnection()->statement(
-                'ALTER TABLE ares_subjects ADD FULLTEXT INDEX ares_subjects_name_fulltext (name)'
-            );
-        } elseif ($driver === 'pgsql') {
+        // Name search uses substring matching (LIKE '%term%'). On PostgreSQL a
+        // trigram GIN index accelerates that; other drivers fall back to a plain
+        // index, which still helps ordering and prefix lookups.
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
             Schema::getConnection()->statement(
                 'CREATE INDEX ares_subjects_name_trgm ON ares_subjects USING GIN (name gin_trgm_ops)'
             );
